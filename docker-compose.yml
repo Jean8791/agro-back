@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: agro-back-postgres
+    environment:
+      POSTGRES_DB: agro_back
+      POSTGRES_USER: agro
+      POSTGRES_PASSWORD: agro
+    ports:
+      - "5432:5432"
+    volumes:
+      - agro-back-postgres-data:/var/lib/postgresql/data
+      - ./db-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agro -d agro_back"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  agro-back-postgres-data:

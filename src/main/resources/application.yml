@@ -1,0 +1,60 @@
+quarkus:
+  http:
+    port: 8090
+    # Origens liberadas explicitamente — nunca "/.*/". 4200 é o front local;
+    # 4300 é a porta usada para subir uma segunda instância em paralelo sem
+    # derrubar a primeira. Outros ambientes entram via CORS_ORIGINS (lista
+    # separada por vírgula).
+    cors:
+      enabled: true
+      origins: ${CORS_ORIGINS:http://localhost:4200,http://localhost:4300}
+      methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+      headers: Content-Type,Authorization
+      access-control-max-age: 24H
+      # O token vai no header Authorization, não em cookie — sem credenciais
+      # cross-origin não há o que o navegador precise anexar sozinho.
+      access-control-allow-credentials: false
+  datasource:
+    db-kind: postgresql
+    username: ${DB_USERNAME:agro}
+    password: ${DB_PASSWORD:agro}
+    jdbc:
+      url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:agro_back}
+  hibernate-orm:
+    schema-management:
+      strategy: none
+  flyway:
+    migrate-at-start: true
+    baseline-on-migrate: true
+
+mp:
+  jwt:
+    verify:
+      publickey:
+        location: publicKey.pem
+      issuer: https://agro-back.codenest.com.br
+
+smallrye:
+  jwt:
+    sign:
+      key:
+        location: privateKey.pem
+
+agro:
+  auth:
+    access-token-ttl-seconds: 900
+    refresh-token-ttl-seconds: 604800
+
+"%test":
+  quarkus:
+    datasource:
+      jdbc:
+        url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:agro_back_test}
+    http:
+      test-port: 8091
+      # Só em teste: permite que cada caso mande um X-Forwarded-For próprio e
+      # exercite o limite por IP isoladamente. Em produção fica desligado —
+      # habilitar sem um proxy confiável na frente deixaria o cliente forjar
+      # o próprio IP.
+      proxy:
+        proxy-address-forwarding: true

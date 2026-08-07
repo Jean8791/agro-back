@@ -1,0 +1,1301 @@
+{
+  "info": {
+    "name": "agro-back",
+    "description": "Coleção de testes do backend agro-back. As pastas espelham os domínios do backend (mesma convenção do CLAUDE.md: um domínio, uma pasta).\n\nORDEM: rode a coleção inteira pelo Runner, de cima para baixo. 'auth > Login (super admin)' guarda {{token_super}}; 'produtor > Criar produtor' guarda {{produtor_id}}; 'usuario > Login (admin do produtor)' guarda {{token}}, que é o Bearer padrão de todos os requests.\n\nO sistema é multi-tenant: cada produtor só enxerga os próprios dados. Os últimos requests de 'usuario' provam isso — buscar registro de outro produtor devolve 404, e forjar ?produtorId= não vaza nada.\n\nE-mails e documentos são gerados por timestamp, então a coleção pode rodar quantas vezes for preciso sem colidir com dado antigo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8090"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "token_super",
+      "value": ""
+    },
+    {
+      "key": "produtor_id",
+      "value": ""
+    },
+    {
+      "key": "produtor_documento",
+      "value": ""
+    },
+    {
+      "key": "produtor_id_descartavel",
+      "value": ""
+    },
+    {
+      "key": "produtor_documento_outro",
+      "value": ""
+    },
+    {
+      "key": "usuario_id",
+      "value": ""
+    },
+    {
+      "key": "usuario_email",
+      "value": ""
+    },
+    {
+      "key": "usuario_admin_email",
+      "value": ""
+    },
+    {
+      "key": "usuario_id_outro",
+      "value": ""
+    },
+    {
+      "key": "usuario_outro_email",
+      "value": ""
+    },
+    {
+      "key": "refresh_token",
+      "value": ""
+    },
+    {
+      "key": "refresh_token_usado",
+      "value": ""
+    },
+    {
+      "key": "email_forca_bruta",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "auth",
+      "description": "Comece por 'Login (super admin)'. Ele guarda o token do usuário do produto, que é quem cadastra produtores. O token usado pelo resto da coleção ({{token}}) vem do login em 'usuario > Login (admin do produtor)'.",
+      "item": [
+        {
+          "name": "Login (super admin)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@agro.com\",\n  \"senha\": \"admin123\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"veio token e refresh\", () => {",
+                  "    pm.expect(body.token).to.be.a(\"string\").and.not.empty;",
+                  "    pm.expect(body.refreshToken).to.be.a(\"string\").and.not.empty;",
+                  "});",
+                  "const claims = JSON.parse(atob(body.token.split('.')[1]));",
+                  "pm.test(\"é super admin: papel SUPER_ADMIN e sem produtor\", () => {",
+                  "    pm.expect(claims.groups).to.include(\"SUPER_ADMIN\");",
+                  "    pm.expect(claims.produtor).to.be.undefined;",
+                  "});",
+                  "pm.collectionVariables.set(\"token_super\", body.token);",
+                  "pm.collectionVariables.set(\"refresh_token\", body.refreshToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh token",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/refresh",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"veio par novo de tokens\", () => {",
+                  "    pm.expect(body.token).to.be.a(\"string\").and.not.empty;",
+                  "    pm.expect(body.refreshToken).to.be.a(\"string\").and.not.empty;",
+                  "});",
+                  "// o refresh é rotacionado: guarda o antigo para provar que morreu",
+                  "pm.collectionVariables.set(\"refresh_token_usado\", pm.collectionVariables.get(\"refresh_token\"));",
+                  "pm.collectionVariables.set(\"refresh_token\", body.refreshToken);",
+                  "pm.collectionVariables.set(\"token_super\", body.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh token (reuso do token antigo, deve falhar)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/refresh",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token_usado}}\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"sessão inválida\", () => pm.expect(pm.response.json().message).to.eql(\"Sessão inválida ou expirada\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver limites do rate limit",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/auth/rate-limit",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_super}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"limites vêm tipados como número\", () => {",
+                  "    pm.expect(body.maxTentativasEmail).to.be.a(\"number\");",
+                  "    pm.expect(body.janelaMinutos).to.be.a(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Alterar limites do rate limit (2 tentativas por e-mail)",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/auth/rate-limit",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maxTentativasEmail\": 2,\n  \"maxTentativasIp\": 20,\n  \"janelaMinutos\": 15,\n  \"bloqueioMinutos\": 15\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_super}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"novo limite aplicado\", () => pm.expect(pm.response.json().maxTentativasEmail).to.eql(2));",
+                  "// e-mail inexistente e único: o contador por e-mail começa zerado",
+                  "pm.collectionVariables.set(\"email_forca_bruta\", `forca.bruta.${Date.now()}@teste.com`);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Alterar limites com valor inválido (deve falhar)",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/auth/rate-limit",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maxTentativasEmail\": 0,\n  \"maxTentativasIp\": 20,\n  \"janelaMinutos\": 15,\n  \"bloqueioMinutos\": 15\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_super}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login inválido (1ª tentativa)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email_forca_bruta}}\",\n  \"senha\": \"senha-errada\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"credenciais inválidas\", () => pm.expect(pm.response.json().message).to.eql(\"Credenciais inválidas\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login inválido (2ª tentativa, atinge o limite)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email_forca_bruta}}\",\n  \"senha\": \"senha-errada\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ainda 400: o bloqueio só vale a partir da PRÓXIMA tentativa",
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login após o limite (deve retornar 429)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email_forca_bruta}}\",\n  \"senha\": \"senha-errada\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 429\", () => pm.response.to.have.status(429));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"erro Too Many Requests\", () => pm.expect(body.error).to.eql(\"Too Many Requests\"));",
+                  "pm.test(\"mensagem informa a espera\", () => pm.expect(body.message).to.include(\"Muitas tentativas de login\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Restaurar limites padrão do rate limit",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/auth/rate-limit",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maxTentativasEmail\": 5,\n  \"maxTentativasIp\": 20,\n  \"janelaMinutos\": 15,\n  \"bloqueioMinutos\": 15\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_super}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"limites restaurados\", () => pm.expect(pm.response.json().maxTentativasEmail).to.eql(5));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/logout",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "produtor",
+      "description": "O cliente que assina — um produtor tem N propriedades. Só o super admin cadastra: todas as rotas exigem o token de 'auth > Login (super admin)'.",
+      "item": [
+        {
+          "name": "Criar produtor",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/produtores",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Fazenda {{produtor_documento}}\",\n  \"documento\": \"{{produtor_documento}}\",\n  \"tipoPessoa\": \"PJ\"\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_super}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// documento é unique: gera 14 dígitos a cada execução",
+                  "pm.collectionVariables.set(\"produtor_documento\", String(Date.now()).padStart(14, \"9\").slice(-14));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"id é UUID\", () => pm.expect(body.id).to.match(/^[0-9a-f-]{36}$/i));",
+                  "pm.test(\"nasce ativo\", () => pm.expect(body.ativo).to.eql(true));",
+                  "pm.collectionVariables.set(\"produtor_id\", body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar segundo produtor (usado nos testes de isolamento)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/produtores",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Fazenda Vizinha\",\n  \"documento\": \"{{produtor_documento_outro}}\",\n  \"tipoPessoa\": \"PJ\"\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_super}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set(\"produtor_documento_outro\", String(Date.now() + 1).padStart(14, \"8\").slice(-14));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"produtor_id_descartavel\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar produtores",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/produtores",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_super}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"resposta é uma lista\", () => pm.expect(body).to.be.an(\"array\"));",
+                  "pm.test(\"o produtor criado está na lista\", () => {",
+                  "    pm.expect(body.map(p => p.id)).to.include(pm.collectionVariables.get(\"produtor_id\"));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar produtor por id",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/produtores/{{produtor_id}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_super}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"id confere\", () => pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get(\"produtor_id\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar produtor",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/produtores/{{produtor_id}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Fazenda Renomeada\",\n  \"documento\": \"{{produtor_documento}}\",\n  \"tipoPessoa\": \"PJ\"\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_super}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"nome alterado\", () => pm.expect(pm.response.json().nome).to.eql(\"Fazenda Renomeada\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar produtor com documento duplicado (deve falhar)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/produtores",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Documento Repetido\",\n  \"documento\": \"{{produtor_documento}}\",\n  \"tipoPessoa\": \"PJ\"\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_super}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"documento duplicado\", () => pm.expect(pm.response.json().message).to.eql(\"Documento já cadastrado\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar produtor com documento inválido (deve falhar)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/produtores",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Documento Curto\",\n  \"documento\": \"123\",\n  \"tipoPessoa\": \"PF\"\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_super}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Inativar produtor",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/produtores/{{produtor_id_descartavel}}/inativar",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_super}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ficou inativo\", () => pm.expect(pm.response.json().ativo).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reativar produtor",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/produtores/{{produtor_id_descartavel}}/reativar",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_super}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"voltou a ficar ativo\", () => pm.expect(pm.response.json().ativo).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "usuario",
+      "description": "Usuários de um produtor. O super admin cria o primeiro admin informando produtorId; a partir do login dele ({{token}}), o produtor vem do token e o parâmetro é ignorado. Os dois últimos requests provam o isolamento entre produtores.",
+      "item": [
+        {
+          "name": "Criar admin do produtor (super admin)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/usuarios",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Admin do Produtor\",\n  \"email\": \"{{usuario_admin_email}}\",\n  \"senha\": \"senha123\",\n  \"papel\": \"ADMIN\",\n  \"produtorId\": \"{{produtor_id}}\"\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_super}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set(\"usuario_admin_email\", `admin.produtor.${Date.now()}@teste.com`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"papel ADMIN e ativo\", () => {",
+                  "    pm.expect(body.papel).to.eql(\"ADMIN\");",
+                  "    pm.expect(body.ativo).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (admin do produtor)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{usuario_admin_email}}\",\n  \"senha\": \"senha123\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "const claims = JSON.parse(atob(body.token.split('.')[1]));",
+                  "pm.test(\"token carrega o produtor do vínculo\", () => {",
+                  "    pm.expect(claims.produtor).to.eql(pm.collectionVariables.get(\"produtor_id\"));",
+                  "    pm.expect(claims.groups).to.include(\"ADMIN\");",
+                  "});",
+                  "// este é o token que o resto da coleção usa",
+                  "pm.collectionVariables.set(\"token\", body.token);",
+                  "pm.collectionVariables.set(\"refresh_token\", body.refreshToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar usuário",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/usuarios",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Fulano Teste\",\n  \"email\": \"{{usuario_email}}\",\n  \"senha\": \"senha123\",\n  \"papel\": \"CONSULTA\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set(\"usuario_email\", `fulano.${Date.now()}@teste.com`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"veio com id UUID, e-mail e papel corretos\", () => {",
+                  "    pm.expect(body.id).to.match(/^[0-9a-f-]{36}$/i);",
+                  "    pm.expect(body.email).to.eql(pm.collectionVariables.get(\"usuario_email\"));",
+                  "    pm.expect(body.papel).to.eql(\"CONSULTA\");",
+                  "    pm.expect(body.ativo).to.eql(true);",
+                  "});",
+                  "pm.collectionVariables.set(\"usuario_id\", body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar usuários",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/usuarios",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"resposta é uma lista\", () => pm.expect(body).to.be.an(\"array\"));",
+                  "pm.test(\"só traz usuários do produtor da sessão\", () => {",
+                  "    pm.expect(body.map(u => u.id)).to.include(pm.collectionVariables.get(\"usuario_id\"));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar usuário por id",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/usuarios/{{usuario_id}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"e-mail confere\", () => pm.expect(pm.response.json().email).to.eql(pm.collectionVariables.get(\"usuario_email\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar usuário (trocando o papel)",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/usuarios/{{usuario_id}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Fulano Editado\",\n  \"email\": \"{{usuario_email}}\",\n  \"papel\": \"OPERACIONAL\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"nome e papel alterados\", () => {",
+                  "    pm.expect(body.nome).to.eql(\"Fulano Editado\");",
+                  "    pm.expect(body.papel).to.eql(\"OPERACIONAL\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar usuário (e-mail duplicado, deve falhar)",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/usuarios/{{usuario_id}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Fulano Editado\",\n  \"email\": \"{{usuario_admin_email}}\",\n  \"papel\": \"CONSULTA\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"e-mail duplicado\", () => pm.expect(pm.response.json().message).to.eql(\"E-mail já cadastrado\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bloquear usuário",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/usuarios/{{usuario_id}}/bloquear",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ficou inativo\", () => pm.expect(pm.response.json().ativo).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Desbloquear usuário",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/usuarios/{{usuario_id}}/desbloquear",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"voltou a ficar ativo\", () => pm.expect(pm.response.json().ativo).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Excluir usuário",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/usuarios/{{usuario_id}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 204\", () => pm.response.to.have.status(204));",
+                  "// exclusão é lógica: o usuário continua existindo, mas inativo"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar usuário em OUTRO produtor (super admin)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/usuarios",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Usuário do Outro\",\n  \"email\": \"{{usuario_outro_email}}\",\n  \"senha\": \"senha123\",\n  \"papel\": \"ADMIN\",\n  \"produtorId\": \"{{produtor_id_descartavel}}\"\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_super}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set(\"usuario_outro_email\", `outro.${Date.now()}@teste.com`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"usuario_id_outro\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar usuário de outro produtor (deve dar 404)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/usuarios/{{usuario_id_outro}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// 404 e não 403 de propósito: 403 confirmaria que o id existe",
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"não encontrado\", () => pm.expect(pm.response.json().message).to.eql(\"Usuário não encontrado\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar forjando o produtor de outro (não deve vazar)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/usuarios?produtorId={{produtor_id_descartavel}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// o parâmetro só vale para super admin; aqui é ignorado",
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"nenhum usuário do outro produtor aparece\", () => {",
+                  "    const ids = pm.response.json().map(u => u.id);",
+                  "    pm.expect(ids).to.not.include(pm.collectionVariables.get(\"usuario_id_outro\"));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar produtores como admin de produtor (deve falhar)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/produtores",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// cadastro de clientes é exclusivo do super admin",
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver limites do rate limit como admin de produtor (deve falhar)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/auth/rate-limit",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// rate limit é configuração do produto, não de um cliente",
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

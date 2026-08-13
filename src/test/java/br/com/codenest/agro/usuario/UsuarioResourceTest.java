@@ -4,7 +4,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
-import br.com.codenest.agro.produtor.enums.Papel;
+import br.com.codenest.agro.papel.PapeisDeSistema;
 import br.com.codenest.agro.shared.JwtTestSupport;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
@@ -23,7 +23,7 @@ class UsuarioResourceTest {
 
     @BeforeEach
     void prepararAcesso() {
-        admin = jwt.tokenDoPapel(Papel.ADMIN);
+        admin = jwt.tokenDoPapel(PapeisDeSistema.ADMINISTRADOR);
     }
 
     private String emailUnico() {
@@ -43,14 +43,14 @@ class UsuarioResourceTest {
                           "nome": "Usuário Teste",
                           "email": "%s",
                           "senha": "senha123",
-                          "papel": "CONSULTA"
+                          "papelId": "01890000-0000-7000-8000-000000000012"
                         }
                         """.formatted(email))
                 .when().post("/usuarios")
                 .then().statusCode(201)
                 .body("email", equalTo(email))
                 .body("ativo", is(true))
-                .body("papel", equalTo("CONSULTA"))
+                .body("papelNome", equalTo("Consulta"))
                 .extract().path("id");
     }
 
@@ -72,7 +72,7 @@ class UsuarioResourceTest {
                           "nome": "Outro Usuário",
                           "email": "%s",
                           "senha": "senha123",
-                          "papel": "CONSULTA"
+                          "papelId": "01890000-0000-7000-8000-000000000012"
                         }
                         """.formatted(email))
                 .when().post("/usuarios")
@@ -89,7 +89,7 @@ class UsuarioResourceTest {
                           "nome": "Sem Token",
                           "email": "%s",
                           "senha": "senha123",
-                          "papel": "CONSULTA"
+                          "papelId": "01890000-0000-7000-8000-000000000012"
                         }
                         """.formatted(emailUnico()))
                 .when().post("/usuarios")
@@ -141,14 +141,14 @@ class UsuarioResourceTest {
                         {
                           "nome": "Nome Editado",
                           "email": "%s",
-                          "papel": "OPERACIONAL"
+                          "papelId": "01890000-0000-7000-8000-000000000011"
                         }
                         """.formatted(novoEmail))
                 .when().put("/usuarios/{id}", id)
                 .then().statusCode(200)
                 .body("nome", equalTo("Nome Editado"))
                 .body("email", equalTo(novoEmail))
-                .body("papel", equalTo("OPERACIONAL"));
+                .body("papelNome", equalTo("Operacional"));
     }
 
     @Test
@@ -164,7 +164,7 @@ class UsuarioResourceTest {
                         {
                           "nome": "Tentando Duplicar",
                           "email": "%s",
-                          "papel": "CONSULTA"
+                          "papelId": "01890000-0000-7000-8000-000000000012"
                         }
                         """.formatted(emailExistente))
                 .when().put("/usuarios/{id}", id)
@@ -210,7 +210,7 @@ class UsuarioResourceTest {
     @Test
     void usuarioDeOutroProdutorNaoApareceNaListagem() {
         String emailDoOutro = emailUnico();
-        var outroAdmin = jwt.tokenDoPapel(Papel.ADMIN);
+        var outroAdmin = jwt.tokenDoPapel(PapeisDeSistema.ADMINISTRADOR);
         criarUsuarioCom(outroAdmin.token(), emailDoOutro);
 
         given()
@@ -222,7 +222,7 @@ class UsuarioResourceTest {
 
     @Test
     void buscarUsuarioDeOutroProdutorPeloIdDeveRetornar404() {
-        var outroAdmin = jwt.tokenDoPapel(Papel.ADMIN);
+        var outroAdmin = jwt.tokenDoPapel(PapeisDeSistema.ADMINISTRADOR);
         String idDoOutro = criarUsuarioCom(outroAdmin.token(), emailUnico());
 
         given()
@@ -234,7 +234,7 @@ class UsuarioResourceTest {
 
     @Test
     void excluirUsuarioDeOutroProdutorDeveRetornar404() {
-        var outroAdmin = jwt.tokenDoPapel(Papel.ADMIN);
+        var outroAdmin = jwt.tokenDoPapel(PapeisDeSistema.ADMINISTRADOR);
         String idDoOutro = criarUsuarioCom(outroAdmin.token(), emailUnico());
 
         given()
@@ -246,7 +246,7 @@ class UsuarioResourceTest {
     @Test
     void informarProdutorDeOutroNaQueryNaoDeveVazarDados() {
         String emailDoOutro = emailUnico();
-        var outroAdmin = jwt.tokenDoPapel(Papel.ADMIN);
+        var outroAdmin = jwt.tokenDoPapel(PapeisDeSistema.ADMINISTRADOR);
         criarUsuarioCom(outroAdmin.token(), emailDoOutro);
 
         // o parâmetro só vale para super admin; aqui tem que ser ignorado

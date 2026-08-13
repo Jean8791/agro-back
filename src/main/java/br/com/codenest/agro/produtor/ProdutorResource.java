@@ -2,7 +2,7 @@ package br.com.codenest.agro.produtor;
 
 import br.com.codenest.agro.produtor.dto.ProdutorRequest;
 import br.com.codenest.agro.produtor.dto.ProdutorResponse;
-import br.com.codenest.agro.produtor.enums.Papel;
+import br.com.codenest.agro.shared.Autorizacao;
 import br.com.codenest.agro.produtor.service.ProdutorService;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -24,7 +24,7 @@ import java.util.UUID;
 @Path("/produtores")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-@RolesAllowed(Papel.SUPER_ADMIN)
+@RolesAllowed(Autorizacao.SUPER_ADMIN)
 public class ProdutorResource {
 
     @Inject

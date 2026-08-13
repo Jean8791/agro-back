@@ -1,11 +1,8 @@
 package br.com.codenest.agro.produtor.entity;
 
-import br.com.codenest.agro.produtor.enums.Papel;
 import br.com.codenest.agro.shared.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.util.UUID;
@@ -31,9 +28,8 @@ public class ProdutorUsuario extends BaseEntity {
     @Column(name = "usuario_id", nullable = false, updatable = false, columnDefinition = "uuid")
     private UUID usuarioId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private Papel papel;
+    @Column(name = "papel_id", nullable = false, columnDefinition = "uuid")
+    private UUID papelId;
 
     @Column(nullable = false)
     private boolean ativo = true;
@@ -54,12 +50,12 @@ public class ProdutorUsuario extends BaseEntity {
         this.usuarioId = usuarioId;
     }
 
-    public Papel getPapel() {
-        return papel;
+    public UUID getPapelId() {
+        return papelId;
     }
 
-    public void setPapel(Papel papel) {
-        this.papel = papel;
+    public void setPapelId(UUID papelId) {
+        this.papelId = papelId;
     }
 
     public boolean isAtivo() {

@@ -7,7 +7,8 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import br.com.codenest.agro.produtor.enums.Papel;
+import br.com.codenest.agro.papel.PapeisDeSistema;
+import br.com.codenest.agro.papel.enums.Permissao;
 import br.com.codenest.agro.shared.JwtTestSupport;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
@@ -36,7 +37,7 @@ class AuthResourceTest {
 
     @BeforeEach
     void prepararAcesso() {
-        admin = jwt.tokenDoPapel(Papel.ADMIN);
+        admin = jwt.tokenDoPapel(PapeisDeSistema.ADMINISTRADOR);
     }
 
     private static String ipUnico() {
@@ -68,7 +69,7 @@ class AuthResourceTest {
                           "nome": "Usuário Login",
                           "email": "%s",
                           "senha": "%s",
-                          "papel": "CONSULTA"
+                          "papelId": "01890000-0000-7000-8000-000000000012"
                         }
                         """.formatted(email, SENHA))
                 .when().post("/usuarios")
@@ -257,7 +258,7 @@ class AuthResourceTest {
     // ------------------------------------------------------------ multi-tenant
 
     @Test
-    void tokenDeLoginDeveCarregarProdutorEPapel() {
+    void tokenDeLoginDeveCarregarProdutorEPermissoes() {
         String email = criarUsuario();
 
         String token =
@@ -271,7 +272,9 @@ class AuthResourceTest {
         assertTrue(
                 payload.contains("\"%s\"".formatted(admin.produtorId())),
                 "o token precisa levar o produtor do vínculo: " + payload);
-        assertTrue(payload.contains("CONSULTA"), "o token precisa levar o papel: " + payload);
+        assertTrue(
+                payload.contains(Permissao.Codigos.USUARIO_LISTAR),
+                "o token precisa levar as permissões do papel: " + payload);
     }
 
     // ------------------------------------------------------------- rate limit

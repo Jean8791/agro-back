@@ -1,12 +1,12 @@
 package br.com.codenest.agro.usuario.service;
 
+import br.com.codenest.agro.papel.entity.Papel;
+import br.com.codenest.agro.papel.repository.PapelRepository;
 import br.com.codenest.agro.produtor.entity.ProdutorUsuario;
-import br.com.codenest.agro.produtor.enums.Papel;
-import br.com.codenest.agro.produtor.repository.ProdutorRepository;
 import br.com.codenest.agro.produtor.repository.ProdutorUsuarioRepository;
+import br.com.codenest.agro.produtor.service.EscopoProdutor;
 import br.com.codenest.agro.shared.exception.NegocioException;
 import br.com.codenest.agro.shared.exception.RecursoNaoEncontradoException;
-import br.com.codenest.agro.shared.tenant.TenantContext;
 import br.com.codenest.agro.usuario.UsuarioBloqueadoEvent;
 import br.com.codenest.agro.usuario.dto.UsuarioRequest;
 import br.com.codenest.agro.usuario.dto.UsuarioResponse;
@@ -35,13 +35,13 @@ public class UsuarioService {
     UsuarioRepository usuarioRepository;
 
     @Inject
-    ProdutorRepository produtorRepository;
-
-    @Inject
     ProdutorUsuarioRepository produtorUsuarioRepository;
 
     @Inject
-    TenantContext tenantContext;
+    PapelRepository papelRepository;
+
+    @Inject
+    EscopoProdutor escopoProdutor;
 
     @Inject
     Event<UsuarioBloqueadoEvent> usuarioBloqueadoEvent;
@@ -56,6 +56,7 @@ public class UsuarioService {
                         });
 
         UUID produtorId = produtorDaOperacao(request.produtorId());
+        var papel = papelObrigatorio(request.papelId(), produtorId);
 
         var usuario = new Usuario();
         usuario.setNome(request.nome());
@@ -66,10 +67,10 @@ public class UsuarioService {
         var vinculo = new ProdutorUsuario();
         vinculo.setProdutorId(produtorId);
         vinculo.setUsuarioId(usuario.getId());
-        vinculo.setPapel(request.papel());
+        vinculo.setPapelId(papel.getId());
         produtorUsuarioRepository.persist(vinculo);
 
-        return UsuarioResponse.from(usuario, request.papel());
+        return UsuarioResponse.from(usuario, papel);
     }
 
     public List<UsuarioResponse> listar(UUID produtorInformado) {
@@ -79,13 +80,14 @@ public class UsuarioService {
                         vinculo ->
                                 UsuarioResponse.from(
                                         usuarioRepository.findById(vinculo.getUsuarioId()),
-                                        vinculo.getPapel()))
+                                        papelRepository.findById(vinculo.getPapelId())))
                 .toList();
     }
 
     public UsuarioResponse buscarPorId(UUID id, UUID produtorInformado) {
         var vinculo = vinculoObrigatorio(id, produtorInformado);
-        return UsuarioResponse.from(buscarEntidadePorId(id), vinculo.getPapel());
+        return UsuarioResponse.from(
+                buscarEntidadePorId(id), papelRepository.findById(vinculo.getPapelId()));
     }
 
     @Transactional
@@ -100,11 +102,13 @@ public class UsuarioService {
                             throw new NegocioException("E-mail já cadastrado");
                         });
 
+        var papel = papelObrigatorio(request.papelId(), vinculo.getProdutorId());
+
         usuario.setNome(request.nome());
         usuario.setEmail(request.email());
-        vinculo.setPapel(request.papel());
+        vinculo.setPapelId(papel.getId());
 
-        return UsuarioResponse.from(usuario, vinculo.getPapel());
+        return UsuarioResponse.from(usuario, papel);
     }
 
     @Transactional
@@ -113,7 +117,7 @@ public class UsuarioService {
         var vinculo = vinculoObrigatorio(id, produtorInformado);
         usuario.setAtivo(false);
         usuarioBloqueadoEvent.fire(new UsuarioBloqueadoEvent(id));
-        return UsuarioResponse.from(usuario, vinculo.getPapel());
+        return UsuarioResponse.from(usuario, papelRepository.findById(vinculo.getPapelId()));
     }
 
     @Transactional
@@ -121,7 +125,7 @@ public class UsuarioService {
         var usuario = buscarEntidadePorId(id);
         var vinculo = vinculoObrigatorio(id, produtorInformado);
         usuario.setAtivo(true);
-        return UsuarioResponse.from(usuario, vinculo.getPapel());
+        return UsuarioResponse.from(usuario, papelRepository.findById(vinculo.getPapelId()));
     }
 
     @Transactional
@@ -141,6 +145,17 @@ public class UsuarioService {
     }
 
     /**
+     * O papel escolhido, desde que exista para este produtor: um de sistema ou
+     * um que ele mesmo criou. Papel de outro produtor não existe para quem
+     * pergunta — não dá para atribuir por id direto.
+     */
+    private Papel papelObrigatorio(UUID papelId, UUID produtorId) {
+        return papelRepository
+                .buscarDisponivel(papelId, produtorId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Papel não encontrado"));
+    }
+
+    /**
      * Impede que um produtor mexa em usuário de outro: se não há vínculo com o
      * produtor da sessão, o usuário simplesmente não existe para quem pergunta.
      */
@@ -150,23 +165,7 @@ public class UsuarioService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado"));
     }
 
-    /**
-     * Produtor sobre o qual a operação age: o da sessão, ou o informado quando
-     * quem chama é super admin (que não tem produtor no token).
-     */
     private UUID produtorDaOperacao(UUID produtorInformado) {
-        if (!tenantContext.isSuperAdmin()) {
-            return tenantContext.produtorIdObrigatorio();
-        }
-
-        if (produtorInformado == null) {
-            throw new NegocioException("Informe o produtor: super admin não tem um na sessão");
-        }
-
-        if (produtorRepository.findById(produtorInformado) == null) {
-            throw new RecursoNaoEncontradoException("Produtor não encontrado");
-        }
-
-        return produtorInformado;
+        return escopoProdutor.resolver(produtorInformado);
     }
 }

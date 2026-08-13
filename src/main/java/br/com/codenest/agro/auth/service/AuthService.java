@@ -5,11 +5,14 @@ import br.com.codenest.agro.auth.dto.LoginResponse;
 import br.com.codenest.agro.auth.dto.RefreshRequest;
 import br.com.codenest.agro.auth.entity.Sessao;
 import br.com.codenest.agro.auth.repository.SessaoRepository;
+import br.com.codenest.agro.papel.entity.Papel;
+import br.com.codenest.agro.papel.enums.Permissao;
+import br.com.codenest.agro.papel.repository.PapelRepository;
 import br.com.codenest.agro.produtor.entity.Produtor;
 import br.com.codenest.agro.produtor.entity.ProdutorUsuario;
-import br.com.codenest.agro.produtor.enums.Papel;
 import br.com.codenest.agro.produtor.repository.ProdutorRepository;
 import br.com.codenest.agro.produtor.repository.ProdutorUsuarioRepository;
+import br.com.codenest.agro.shared.Autorizacao;
 import br.com.codenest.agro.shared.ClaimsJwt;
 import br.com.codenest.agro.shared.exception.NegocioException;
 import br.com.codenest.agro.usuario.entity.Usuario;
@@ -29,6 +32,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
@@ -49,6 +53,9 @@ public class AuthService {
 
     @Inject
     ProdutorUsuarioRepository produtorUsuarioRepository;
+
+    @Inject
+    PapelRepository papelRepository;
 
     @Inject
     TentativaLoginService tentativaLoginService;
@@ -82,11 +89,13 @@ public class AuthService {
 
         // super admin não entra "dentro" de um produtor
         if (usuario.isAdmin()) {
-            return gerarTokens(usuario, null, Papel.SUPER_ADMIN);
+            return gerarTokens(usuario, null, Set.of(Autorizacao.SUPER_ADMIN), "Super admin");
         }
 
         var vinculo = escolherVinculo(usuario, request.produtorId());
-        return gerarTokens(usuario, vinculo.getProdutorId(), vinculo.getPapel().name());
+        var papel = papelDo(vinculo);
+        return gerarTokens(
+                usuario, vinculo.getProdutorId(), permissoesDe(papel), papel.getNome());
     }
 
     @Transactional
@@ -104,7 +113,7 @@ public class AuthService {
         sessao.setRevogadaEm(LocalDateTime.now());
 
         if (usuario.isAdmin()) {
-            return gerarTokens(usuario, null, Papel.SUPER_ADMIN);
+            return gerarTokens(usuario, null, Set.of(Autorizacao.SUPER_ADMIN), "Super admin");
         }
 
         // o vínculo pode ter sido desativado depois que a sessão nasceu
@@ -113,7 +122,11 @@ public class AuthService {
                         .buscarAtivo(sessao.getProdutorId(), usuario.getId())
                         .orElseThrow(() -> new NegocioException(SESSAO_INVALIDA));
 
-        return gerarTokens(usuario, vinculo.getProdutorId(), vinculo.getPapel().name());
+        // é aqui que uma permissão tirada do papel passa a valer: o access
+        // token que já está na mão do usuário segue valendo até expirar
+        var papel = papelDo(vinculo);
+        return gerarTokens(
+                usuario, vinculo.getProdutorId(), permissoesDe(papel), papel.getNome());
     }
 
     @Transactional
@@ -157,13 +170,43 @@ public class AuthService {
         return vinculo;
     }
 
-    private LoginResponse gerarTokens(Usuario usuario, UUID produtorId, String papel) {
+    /**
+     * O que o papel do vínculo permite, no formato que o {@code @RolesAllowed}
+     * de cada endpoint espera. Papel sem permissão nenhuma gera um token que
+     * autentica mas não autoriza nada — que é o correto.
+     */
+    private Papel papelDo(ProdutorUsuario vinculo) {
+        Papel papel = papelRepository.findById(vinculo.getPapelId());
+        if (papel == null) {
+            throw new NegocioException(SESSAO_INVALIDA);
+        }
+        return papel;
+    }
+
+    private static Set<String> permissoesDe(Papel papel) {
+        return papel.getPermissoes().stream().map(Permissao::getCodigo).collect(Collectors.toSet());
+    }
+
+    /**
+     * As permissões vão na claim {@code groups} de propósito: é ela que o
+     * {@code @RolesAllowed} lê, então autorizar por permissão não custa
+     * interceptor nem consulta ao banco a cada requisição. O preço é a
+     * validade do access token — mudança de papel só vale no próximo refresh.
+     */
+    private LoginResponse gerarTokens(
+            Usuario usuario, UUID produtorId, Set<String> permissoes, String papelNome) {
         var builder =
                 Jwt.issuer(issuer)
                         .subject(usuario.getId().toString())
                         .claim(ClaimsJwt.EMAIL, usuario.getEmail())
-                        .groups(Set.of(papel))
+                        .groups(permissoes)
                         .expiresIn(accessTokenTtlSeconds);
+
+        if (papelNome != null) {
+            // só para a interface ter o que escrever no cabeçalho: quem
+            // autoriza são as permissões, nunca este nome
+            builder = builder.claim(ClaimsJwt.PAPEL, papelNome);
+        }
 
         if (produtorId != null) {
             builder = builder.claim(ClaimsJwt.PRODUTOR, produtorId.toString());

@@ -117,3 +117,40 @@ br.com.codenest.agro/
    Não recriar esses campos em cada entidade.
 
 Aplicar essa estrutura ao criar novos domínios/telas no projeto.
+
+## Autorização: papel e permissão
+
+`Papel` era um enum de três valores (`ADMIN`, `OPERACIONAL`, `CONSULTA`) e
+virou **tabela** (`papel/`, migration `V7`), para o ADMIN montar os papéis que
+a operação dele pede sem depender de quem escreve o código.
+
+- **Permissão é enum** (`papel/enums/Permissao.java`), no formato
+  `recurso:acao` — `usuario:inserir`. Precisa ser constante de compilação
+  porque o `@RolesAllowed` a cita: daí a classe aninhada `Permissao.Codigos`.
+  A tabela `papel_permissao` guarda só o par papel↔permissão.
+- **Recurso × Ação** (`Recurso`, `Acao`) existem para o front desenhar a
+  matriz de checkbox. `GET /papeis/permissoes` devolve essa matriz montada, de
+  modo que uma tela nova aparece lá sem mexer no front — basta acrescentar o
+  valor em `Recurso` e as entradas em `Permissao`.
+- **Papel de sistema** tem `produtor_id` nulo e `sistema = true`: vale para
+  todo produtor, ninguém edita. Os ids ficam em `papel/PapeisDeSistema.java`,
+  fixos porque a migration os insere literalmente. Papel criado por um ADMIN
+  nasce com o `produtor_id` dele.
+- **As permissões vão na claim `groups`** do access token
+  (`AuthService.gerarTokens`), no lugar do papel. É ela que o `@RolesAllowed`
+  lê, então autorizar por permissão não custa interceptor nem consulta ao
+  banco por requisição. O preço: tirar permissão de alguém só passa a valer no
+  próximo refresh (access token dura 15 min). O super admin não tem papel e
+  entra em `groups` como `Autorizacao.SUPER_ADMIN`.
+- **`@RolesAllowed` é por método, nunca na classe** — quem pode listar não
+  necessariamente pode excluir. Todo endpoint aceita também
+  `Autorizacao.SUPER_ADMIN`. Esconder o botão no front é conforto; quem barra
+  de verdade é a anotação.
+
+Ao criar um domínio novo: acrescentar o valor em `Recurso`, as permissões em
+`Permissao` (+ `Codigos`), anotar cada método do Resource, e dar as novas
+permissões ao papel Administrador numa migration.
+
+`produtor/service/EscopoProdutor.java` resolve sobre qual produtor a operação
+age (o do token, ou o informado quando é super admin). Todo service que
+recebe `produtorId` por query deve usá-lo em vez de repetir a regra.

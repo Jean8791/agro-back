@@ -7,7 +7,7 @@ import br.com.codenest.agro.auth.dto.RateLimitResponse;
 import br.com.codenest.agro.auth.dto.RefreshRequest;
 import br.com.codenest.agro.auth.service.AuthService;
 import br.com.codenest.agro.auth.service.ConfiguracaoRateLimitService;
-import br.com.codenest.agro.produtor.enums.Papel;
+import br.com.codenest.agro.shared.Autorizacao;
 import io.vertx.core.http.HttpServerRequest;
 import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
@@ -61,14 +61,14 @@ public class AuthResource {
 
     @GET
     @Path("/rate-limit")
-    @RolesAllowed(Papel.SUPER_ADMIN)
+    @RolesAllowed(Autorizacao.SUPER_ADMIN)
     public RateLimitResponse buscarRateLimit() {
         return configuracaoRateLimitService.limitesAtuais();
     }
 
     @PUT
     @Path("/rate-limit")
-    @RolesAllowed(Papel.SUPER_ADMIN)
+    @RolesAllowed(Autorizacao.SUPER_ADMIN)
     public RateLimitResponse atualizarRateLimit(@Valid RateLimitRequest request) {
         return configuracaoRateLimitService.atualizar(request);
     }

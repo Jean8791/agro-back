@@ -118,6 +118,23 @@ br.com.codenest.agro/
 
 Aplicar essa estrutura ao criar novos domínios/telas no projeto.
 
+`propriedade/cultura/clima/rendimento` acima são exemplo ilustrativo do
+padrão — os domínios que existem de fato hoje são `usuario/`, `produtor/`,
+`papel/` e `raiox/` (catálogo de produtos, checklist de custos e simulações
+da calculadora de preço mínimo — três subpacotes `raiox/produto/`,
+`raiox/checklist/`, `raiox/simulacao/`, cada um com seu próprio
+Resource/Service/Repository/entity/dto, mesmo formato do exemplo acima).
+
+**Evitar ciclo entre domínios na prática**: `produtor/` precisa que todo
+produtor novo já nasça com o catálogo do Raio-X semeado, mas `raiox/`
+depende de `produtor/` (via `EscopoProdutor`) — importar `raiox` direto de
+`ProdutorService` fecharia um ciclo. Resolvido com um evento CDI:
+`ProdutorService.criar()` dispara `ProdutorCriadoEvent` (definido em
+`produtor/`, sem saber quem escuta) e `RaioxSemeadorService.aoCriarProdutor`
+o observa (`@Observes`, síncrono, dentro da mesma transação). A dependência
+fica só na direção `raiox → produtor`. Vale o mesmo padrão pra qualquer novo
+domínio que precise reagir à criação de um produtor sem inverter a regra 3.
+
 ## Autorização: papel e permissão
 
 `Papel` era um enum de três valores (`ADMIN`, `OPERACIONAL`, `CONSULTA`) e
@@ -154,3 +171,12 @@ permissões ao papel Administrador numa migration.
 `produtor/service/EscopoProdutor.java` resolve sobre qual produtor a operação
 age (o do token, ou o informado quando é super admin). Todo service que
 recebe `produtorId` por query deve usá-lo em vez de repetir a regra.
+
+**Nome de `Recurso` não pode ter `_`.** `Permissao.Codigos` monta a constante
+como `NOME_ACAO` e separa no primeiro `_`; o front (`codigoDaPermissao`) faz o
+mesmo split. `RAIOX_PRODUTO_LISTAR` viraria recurso `RAIOX` + ação `PRODUTO`
+em vez de recurso `RAIOXPRODUTO` + ação `LISTAR` — por isso o catálogo do
+Raio-X é `RAIOXPRODUTO` (junto, sem `_`) e o checklist é `RAIOXCHECKLIST`,
+dois recursos separados desde 17/08/2026 (migration `V9`) para o ADMIN poder
+dar a permissão de configurar um sem dar a do outro. Simulações ficam em
+`RAIOXSIMULACAO`, também sem `_`.

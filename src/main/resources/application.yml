@@ -23,6 +23,12 @@ quarkus:
   hibernate-orm:
     schema-management:
       strategy: none
+    mapping:
+      format:
+        # As colunas jsonb do Raio-X (RaioxSimulacao.formulario/resultado) não
+        # têm serialização customizada — usar o ObjectMapper padrão do
+        # Hibernate em vez do do REST evita o aviso/erro de inicialização.
+        global: ignore
   flyway:
     migrate-at-start: true
     baseline-on-migrate: true

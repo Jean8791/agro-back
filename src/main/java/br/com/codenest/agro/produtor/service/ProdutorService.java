@@ -1,5 +1,6 @@
 package br.com.codenest.agro.produtor.service;
 
+import br.com.codenest.agro.produtor.ProdutorCriadoEvent;
 import br.com.codenest.agro.produtor.dto.ProdutorRequest;
 import br.com.codenest.agro.produtor.dto.ProdutorResponse;
 import br.com.codenest.agro.produtor.entity.Produtor;
@@ -7,6 +8,7 @@ import br.com.codenest.agro.produtor.repository.ProdutorRepository;
 import br.com.codenest.agro.shared.exception.NegocioException;
 import br.com.codenest.agro.shared.exception.RecursoNaoEncontradoException;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.util.List;
@@ -22,6 +24,9 @@ public class ProdutorService {
     @Inject
     ProdutorRepository produtorRepository;
 
+    @Inject
+    Event<ProdutorCriadoEvent> produtorCriadoEvent;
+
     @Transactional
     public ProdutorResponse criar(ProdutorRequest request) {
         produtorRepository
@@ -36,6 +41,10 @@ public class ProdutorService {
         produtor.setDocumento(request.documento());
         produtor.setTipoPessoa(request.tipoPessoa());
         produtorRepository.persist(produtor);
+
+        // quem precisar semear dado inicial (hoje, só o catálogo do Raio-X)
+        // observa este evento — produtor não precisa conhecer quem escuta
+        produtorCriadoEvent.fire(new ProdutorCriadoEvent(produtor.getId()));
 
         return ProdutorResponse.from(produtor);
     }

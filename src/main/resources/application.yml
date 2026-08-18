@@ -19,7 +19,10 @@ quarkus:
     username: ${DB_USERNAME:agro}
     password: ${DB_PASSWORD:agro}
     jdbc:
-      url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:agro_back}
+      # sslmode fica fora do compose local (Postgres 16-alpine não tem SSL
+      # configurado) e vira `require` em produção via DB_SSLMODE — a Neon
+      # recusa conexão em texto puro.
+      url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:agro_back}?sslmode=${DB_SSLMODE:disable}
   hibernate-orm:
     schema-management:
       strategy: none
@@ -55,7 +58,7 @@ agro:
   quarkus:
     datasource:
       jdbc:
-        url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:agro_back_test}
+        url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:agro_back_test}?sslmode=${DB_SSLMODE:disable}
     http:
       test-port: 8091
       # Só em teste: permite que cada caso mande um X-Forwarded-For próprio e

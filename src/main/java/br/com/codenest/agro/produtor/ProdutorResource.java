@@ -4,10 +4,13 @@ import br.com.codenest.agro.produtor.dto.ProdutorRequest;
 import br.com.codenest.agro.produtor.dto.ProdutorResponse;
 import br.com.codenest.agro.shared.Autorizacao;
 import br.com.codenest.agro.produtor.service.ProdutorService;
+import br.com.codenest.agro.shared.paginacao.PaginaResposta;
+import br.com.codenest.agro.shared.paginacao.ParametrosPaginacao;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
@@ -15,9 +18,9 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import java.util.List;
 import java.util.UUID;
 
 /** Cadastro de clientes — exclusivo do super admin. */
@@ -37,8 +40,12 @@ public class ProdutorResource {
     }
 
     @GET
-    public List<ProdutorResponse> listar() {
-        return produtorService.listar();
+    public PaginaResposta<ProdutorResponse> listar(
+            @QueryParam("offset") @DefaultValue("0") int offset,
+            @QueryParam("limit") @DefaultValue("10") int limit,
+            @QueryParam("sort") String sort,
+            @QueryParam("termo") String termo) {
+        return produtorService.listar(new ParametrosPaginacao(offset, limit, sort), termo);
     }
 
     @GET

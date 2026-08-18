@@ -20,10 +20,6 @@ public class ProdutorUsuarioRepository implements PanacheRepositoryBase<Produtor
                 .firstResultOptional();
     }
 
-    public List<ProdutorUsuario> listarDoProdutor(UUID produtorId) {
-        return list("produtorId", produtorId);
-    }
-
     /** Quantas pessoas exercem este papel — excluir papel em uso deixaria vínculo órfão. */
     public long contarPorPapel(UUID papelId) {
         return count("papelId", papelId);

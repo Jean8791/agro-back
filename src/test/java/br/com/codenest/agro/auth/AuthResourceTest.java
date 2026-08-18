@@ -96,7 +96,7 @@ class AuthResourceTest {
                 .header("Authorization", "Bearer " + admin.token())
                 .when().get("/usuarios")
                 .then().statusCode(200)
-                .extract().path("find { it.email == '%s' }.id".formatted(email));
+                .extract().path("conteudo.find { it.email == '%s' }.id".formatted(email));
     }
 
     @Test

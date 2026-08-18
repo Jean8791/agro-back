@@ -1,5 +1,14 @@
-*
-!target/*-runner
-!target/*-runner.jar
-!target/lib/*
-!target/quarkus-app/*
+target/
+.git/
+.idea/
+.claude/
+docs/
+postman/
+db-init/
+docker-compose.yml
+*.md
+
+# Nunca deixar a chave privada de assinatura do JWT entrar na imagem — em
+# produção ela é injetada em runtime (arquivo secreto montado + env var
+# SMALLRYE_JWT_SIGN_KEY_LOCATION apontando pra ele), nunca buildada junto.
+src/main/resources/privateKey.pem

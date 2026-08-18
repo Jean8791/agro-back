@@ -7,6 +7,8 @@ import br.com.codenest.agro.produtor.repository.ProdutorUsuarioRepository;
 import br.com.codenest.agro.produtor.service.EscopoProdutor;
 import br.com.codenest.agro.shared.exception.NegocioException;
 import br.com.codenest.agro.shared.exception.RecursoNaoEncontradoException;
+import br.com.codenest.agro.shared.paginacao.PaginaResposta;
+import br.com.codenest.agro.shared.paginacao.ParametrosPaginacao;
 import br.com.codenest.agro.usuario.UsuarioBloqueadoEvent;
 import br.com.codenest.agro.usuario.dto.UsuarioRequest;
 import br.com.codenest.agro.usuario.dto.UsuarioResponse;
@@ -18,7 +20,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -73,15 +74,16 @@ public class UsuarioService {
         return UsuarioResponse.from(usuario, papel);
     }
 
-    public List<UsuarioResponse> listar(UUID produtorInformado) {
-        return produtorUsuarioRepository.listarDoProdutor(produtorDaOperacao(produtorInformado))
-                .stream()
-                .map(
-                        vinculo ->
-                                UsuarioResponse.from(
-                                        usuarioRepository.findById(vinculo.getUsuarioId()),
-                                        papelRepository.findById(vinculo.getPapelId())))
-                .toList();
+    public PaginaResposta<UsuarioResponse> listar(
+            ParametrosPaginacao paginacao, String termo, UUID produtorInformado) {
+        var pagina =
+                usuarioRepository.paginarDoProdutor(
+                        produtorDaOperacao(produtorInformado), paginacao, termo);
+        var conteudo =
+                pagina.conteudo().stream()
+                        .map(linha -> UsuarioResponse.from((Usuario) linha[0], (Papel) linha[1]))
+                        .toList();
+        return PaginaResposta.de(conteudo, pagina.total());
     }
 
     public UsuarioResponse buscarPorId(UUID id, UUID produtorInformado) {

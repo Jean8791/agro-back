@@ -5,11 +5,14 @@ import br.com.codenest.agro.raiox.checklist.dto.ChecklistItemRequest;
 import br.com.codenest.agro.raiox.checklist.dto.ChecklistItemResponse;
 import br.com.codenest.agro.raiox.checklist.service.ChecklistItemService;
 import br.com.codenest.agro.shared.Autorizacao;
+import br.com.codenest.agro.shared.paginacao.PaginaResposta;
+import br.com.codenest.agro.shared.paginacao.ParametrosPaginacao;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
@@ -19,7 +22,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import java.util.List;
 import java.util.UUID;
 
 /** Checklist de custos do Raio-X, por produtor. */
@@ -33,8 +35,13 @@ public class ChecklistItemResource {
 
     @GET
     @RolesAllowed({Permissao.Codigos.RAIOXCHECKLIST_LISTAR, Autorizacao.SUPER_ADMIN})
-    public List<ChecklistItemResponse> listar(@QueryParam("produtorId") UUID produtorId) {
-        return checklistItemService.listar(produtorId);
+    public PaginaResposta<ChecklistItemResponse> listar(
+            @QueryParam("produtorId") UUID produtorId,
+            @QueryParam("offset") @DefaultValue("0") int offset,
+            @QueryParam("limit") @DefaultValue("10") int limit,
+            @QueryParam("sort") String sort,
+            @QueryParam("termo") String termo) {
+        return checklistItemService.listar(new ParametrosPaginacao(offset, limit, sort), termo, produtorId);
     }
 
     @GET

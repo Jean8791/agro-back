@@ -2,6 +2,8 @@ package br.com.codenest.agro.usuario;
 
 import br.com.codenest.agro.papel.enums.Permissao;
 import br.com.codenest.agro.shared.Autorizacao;
+import br.com.codenest.agro.shared.paginacao.PaginaResposta;
+import br.com.codenest.agro.shared.paginacao.ParametrosPaginacao;
 import br.com.codenest.agro.usuario.dto.UsuarioRequest;
 import br.com.codenest.agro.usuario.dto.UsuarioResponse;
 import br.com.codenest.agro.usuario.dto.UsuarioUpdateRequest;
@@ -11,6 +13,7 @@ import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
@@ -21,7 +24,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -53,8 +55,13 @@ public class UsuarioResource {
 
     @GET
     @RolesAllowed({Permissao.Codigos.USUARIO_LISTAR, Autorizacao.SUPER_ADMIN})
-    public List<UsuarioResponse> listar(@QueryParam("produtorId") UUID produtorId) {
-        return usuarioService.listar(produtorId);
+    public PaginaResposta<UsuarioResponse> listar(
+            @QueryParam("produtorId") UUID produtorId,
+            @QueryParam("offset") @DefaultValue("0") int offset,
+            @QueryParam("limit") @DefaultValue("10") int limit,
+            @QueryParam("sort") String sort,
+            @QueryParam("termo") String termo) {
+        return usuarioService.listar(new ParametrosPaginacao(offset, limit, sort), termo, produtorId);
     }
 
     @GET

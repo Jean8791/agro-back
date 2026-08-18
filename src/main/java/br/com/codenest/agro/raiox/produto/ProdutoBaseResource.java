@@ -5,11 +5,14 @@ import br.com.codenest.agro.raiox.produto.dto.ProdutoBaseRequest;
 import br.com.codenest.agro.raiox.produto.dto.ProdutoBaseResponse;
 import br.com.codenest.agro.raiox.produto.service.ProdutoBaseService;
 import br.com.codenest.agro.shared.Autorizacao;
+import br.com.codenest.agro.shared.paginacao.PaginaResposta;
+import br.com.codenest.agro.shared.paginacao.ParametrosPaginacao;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
@@ -19,7 +22,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import java.util.List;
 import java.util.UUID;
 
 /** Catálogo de produtos/atividades do Raio-X, por produtor. */
@@ -33,8 +35,13 @@ public class ProdutoBaseResource {
 
     @GET
     @RolesAllowed({Permissao.Codigos.RAIOXPRODUTO_LISTAR, Autorizacao.SUPER_ADMIN})
-    public List<ProdutoBaseResponse> listar(@QueryParam("produtorId") UUID produtorId) {
-        return produtoBaseService.listar(produtorId);
+    public PaginaResposta<ProdutoBaseResponse> listar(
+            @QueryParam("produtorId") UUID produtorId,
+            @QueryParam("offset") @DefaultValue("0") int offset,
+            @QueryParam("limit") @DefaultValue("10") int limit,
+            @QueryParam("sort") String sort,
+            @QueryParam("termo") String termo) {
+        return produtoBaseService.listar(new ParametrosPaginacao(offset, limit, sort), termo, produtorId);
     }
 
     @GET

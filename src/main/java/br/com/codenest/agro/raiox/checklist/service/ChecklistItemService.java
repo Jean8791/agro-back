@@ -6,11 +6,11 @@ import br.com.codenest.agro.raiox.checklist.dto.ChecklistItemResponse;
 import br.com.codenest.agro.raiox.checklist.entity.RaioxChecklistItem;
 import br.com.codenest.agro.raiox.checklist.repository.RaioxChecklistItemRepository;
 import br.com.codenest.agro.shared.exception.RecursoNaoEncontradoException;
+import br.com.codenest.agro.shared.paginacao.PaginaResposta;
+import br.com.codenest.agro.shared.paginacao.ParametrosPaginacao;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.util.Comparator;
-import java.util.List;
 import java.util.UUID;
 
 @ApplicationScoped
@@ -22,11 +22,13 @@ public class ChecklistItemService {
     @Inject
     EscopoProdutor escopoProdutor;
 
-    public List<ChecklistItemResponse> listar(UUID produtorInformado) {
-        return checklistItemRepository.listarDoProdutor(escopoProdutor.resolver(produtorInformado)).stream()
-                .sorted(Comparator.comparing(RaioxChecklistItem::getModulo).thenComparing(RaioxChecklistItem::getRotulo))
-                .map(ChecklistItemResponse::from)
-                .toList();
+    public PaginaResposta<ChecklistItemResponse> listar(
+            ParametrosPaginacao paginacao, String termo, UUID produtorInformado) {
+        var pagina =
+                checklistItemRepository.paginar(
+                        escopoProdutor.resolver(produtorInformado), paginacao, termo);
+        return PaginaResposta.de(
+                pagina.conteudo().stream().map(ChecklistItemResponse::from).toList(), pagina.total());
     }
 
     public ChecklistItemResponse buscarPorId(UUID id, UUID produtorInformado) {

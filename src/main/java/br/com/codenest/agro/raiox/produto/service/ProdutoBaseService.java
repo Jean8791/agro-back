@@ -7,11 +7,11 @@ import br.com.codenest.agro.raiox.produto.dto.ProdutoBaseResponse;
 import br.com.codenest.agro.raiox.produto.entity.RaioxProdutoBase;
 import br.com.codenest.agro.raiox.produto.repository.RaioxProdutoBaseRepository;
 import br.com.codenest.agro.shared.exception.RecursoNaoEncontradoException;
+import br.com.codenest.agro.shared.paginacao.PaginaResposta;
+import br.com.codenest.agro.shared.paginacao.ParametrosPaginacao;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.util.Comparator;
-import java.util.List;
 import java.util.UUID;
 
 @ApplicationScoped
@@ -26,11 +26,13 @@ public class ProdutoBaseService {
     @Inject
     RaioxSemeadorService semeadorService;
 
-    public List<ProdutoBaseResponse> listar(UUID produtorInformado) {
-        return produtoBaseRepository.listarDoProdutor(escopoProdutor.resolver(produtorInformado)).stream()
-                .sorted(Comparator.comparing(RaioxProdutoBase::getProduto))
-                .map(ProdutoBaseResponse::from)
-                .toList();
+    public PaginaResposta<ProdutoBaseResponse> listar(
+            ParametrosPaginacao paginacao, String termo, UUID produtorInformado) {
+        var pagina =
+                produtoBaseRepository.paginar(
+                        escopoProdutor.resolver(produtorInformado), paginacao, termo);
+        return PaginaResposta.de(
+                pagina.conteudo().stream().map(ProdutoBaseResponse::from).toList(), pagina.total());
     }
 
     public ProdutoBaseResponse buscarPorId(UUID id, UUID produtorInformado) {

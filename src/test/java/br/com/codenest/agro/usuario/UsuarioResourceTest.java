@@ -105,7 +105,7 @@ class UsuarioResourceTest {
                 .header("Authorization", "Bearer " + admin.token())
                 .when().get("/usuarios")
                 .then().statusCode(200)
-                .body("findAll { it.email == '%s' }.size()".formatted(email), is(1));
+                .body("conteudo.findAll { it.email == '%s' }.size()".formatted(email), is(1));
     }
 
     @Test
@@ -217,7 +217,7 @@ class UsuarioResourceTest {
                 .header("Authorization", "Bearer " + admin.token())
                 .when().get("/usuarios")
                 .then().statusCode(200)
-                .body("findAll { it.email == '%s' }.size()".formatted(emailDoOutro), is(0));
+                .body("conteudo.findAll { it.email == '%s' }.size()".formatted(emailDoOutro), is(0));
     }
 
     @Test
@@ -255,6 +255,6 @@ class UsuarioResourceTest {
                 .queryParam("produtorId", outroAdmin.produtorId().toString())
                 .when().get("/usuarios")
                 .then().statusCode(200)
-                .body("findAll { it.email == '%s' }.size()".formatted(emailDoOutro), is(0));
+                .body("conteudo.findAll { it.email == '%s' }.size()".formatted(emailDoOutro), is(0));
     }
 }

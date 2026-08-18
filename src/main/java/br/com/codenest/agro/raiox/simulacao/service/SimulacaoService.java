@@ -6,10 +6,11 @@ import br.com.codenest.agro.raiox.simulacao.dto.SimulacaoResponse;
 import br.com.codenest.agro.raiox.simulacao.entity.RaioxSimulacao;
 import br.com.codenest.agro.raiox.simulacao.repository.RaioxSimulacaoRepository;
 import br.com.codenest.agro.shared.exception.RecursoNaoEncontradoException;
+import br.com.codenest.agro.shared.paginacao.PaginaResposta;
+import br.com.codenest.agro.shared.paginacao.ParametrosPaginacao;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.util.List;
 import java.util.UUID;
 
 /** Simulação é imutável — só existe criar, listar, buscar e excluir. */
@@ -22,10 +23,12 @@ public class SimulacaoService {
     @Inject
     EscopoProdutor escopoProdutor;
 
-    public List<SimulacaoResponse> listar(UUID produtorInformado) {
-        return simulacaoRepository.listarDoProdutor(escopoProdutor.resolver(produtorInformado)).stream()
-                .map(SimulacaoResponse::from)
-                .toList();
+    public PaginaResposta<SimulacaoResponse> listar(
+            ParametrosPaginacao paginacao, String termo, UUID produtorInformado) {
+        var pagina =
+                simulacaoRepository.paginar(escopoProdutor.resolver(produtorInformado), paginacao, termo);
+        return PaginaResposta.de(
+                pagina.conteudo().stream().map(SimulacaoResponse::from).toList(), pagina.total());
     }
 
     public SimulacaoResponse buscarPorId(UUID id, UUID produtorInformado) {

@@ -8,11 +8,11 @@ import br.com.codenest.agro.produtor.repository.ProdutorUsuarioRepository;
 import br.com.codenest.agro.produtor.service.EscopoProdutor;
 import br.com.codenest.agro.shared.exception.NegocioException;
 import br.com.codenest.agro.shared.exception.RecursoNaoEncontradoException;
+import br.com.codenest.agro.shared.paginacao.PaginaResposta;
+import br.com.codenest.agro.shared.paginacao.ParametrosPaginacao;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.util.Comparator;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -34,15 +34,11 @@ public class PapelService {
     @Inject
     EscopoProdutor escopoProdutor;
 
-    public List<PapelResponse> listar(UUID produtorInformado) {
-        return papelRepository.listarDisponiveis(escopoProdutor.resolver(produtorInformado)).stream()
-                // os de sistema primeiro: são a escolha corriqueira
-                .sorted(
-                        Comparator.comparing(Papel::isSistema)
-                                .reversed()
-                                .thenComparing(Papel::getNome))
-                .map(PapelResponse::from)
-                .toList();
+    public PaginaResposta<PapelResponse> listar(
+            ParametrosPaginacao paginacao, String termo, UUID produtorInformado) {
+        var pagina = papelRepository.paginar(escopoProdutor.resolver(produtorInformado), paginacao, termo);
+        return PaginaResposta.de(
+                pagina.conteudo().stream().map(PapelResponse::from).toList(), pagina.total());
     }
 
     public PapelResponse buscarPorId(UUID id, UUID produtorInformado) {

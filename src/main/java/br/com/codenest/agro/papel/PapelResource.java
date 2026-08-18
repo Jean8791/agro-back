@@ -6,11 +6,14 @@ import br.com.codenest.agro.papel.dto.RecursoResponse;
 import br.com.codenest.agro.papel.enums.Permissao;
 import br.com.codenest.agro.papel.service.PapelService;
 import br.com.codenest.agro.shared.Autorizacao;
+import br.com.codenest.agro.shared.paginacao.PaginaResposta;
+import br.com.codenest.agro.shared.paginacao.ParametrosPaginacao;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
@@ -57,8 +60,13 @@ public class PapelResource {
         Permissao.Codigos.USUARIO_EDITAR,
         Autorizacao.SUPER_ADMIN
     })
-    public List<PapelResponse> listar(@QueryParam("produtorId") UUID produtorId) {
-        return papelService.listar(produtorId);
+    public PaginaResposta<PapelResponse> listar(
+            @QueryParam("produtorId") UUID produtorId,
+            @QueryParam("offset") @DefaultValue("0") int offset,
+            @QueryParam("limit") @DefaultValue("10") int limit,
+            @QueryParam("sort") String sort,
+            @QueryParam("termo") String termo) {
+        return papelService.listar(new ParametrosPaginacao(offset, limit, sort), termo, produtorId);
     }
 
     @GET

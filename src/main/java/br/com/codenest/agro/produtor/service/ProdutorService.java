@@ -7,11 +7,12 @@ import br.com.codenest.agro.produtor.entity.Produtor;
 import br.com.codenest.agro.produtor.repository.ProdutorRepository;
 import br.com.codenest.agro.shared.exception.NegocioException;
 import br.com.codenest.agro.shared.exception.RecursoNaoEncontradoException;
+import br.com.codenest.agro.shared.paginacao.PaginaResposta;
+import br.com.codenest.agro.shared.paginacao.ParametrosPaginacao;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -49,8 +50,10 @@ public class ProdutorService {
         return ProdutorResponse.from(produtor);
     }
 
-    public List<ProdutorResponse> listar() {
-        return produtorRepository.listAll().stream().map(ProdutorResponse::from).toList();
+    public PaginaResposta<ProdutorResponse> listar(ParametrosPaginacao paginacao, String termo) {
+        var pagina = produtorRepository.paginar(paginacao, termo);
+        return PaginaResposta.de(
+                pagina.conteudo().stream().map(ProdutorResponse::from).toList(), pagina.total());
     }
 
     public ProdutorResponse buscarPorId(UUID id) {

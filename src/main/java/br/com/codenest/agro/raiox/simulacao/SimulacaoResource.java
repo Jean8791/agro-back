@@ -1,6 +1,8 @@
 package br.com.codenest.agro.raiox.simulacao;
 
 import br.com.codenest.agro.papel.enums.Permissao;
+import br.com.codenest.agro.raiox.simulacao.calculo.FormularioCalculo;
+import br.com.codenest.agro.raiox.simulacao.calculo.ResultadoCalculo;
 import br.com.codenest.agro.raiox.simulacao.dto.SimulacaoRequest;
 import br.com.codenest.agro.raiox.simulacao.dto.SimulacaoResponse;
 import br.com.codenest.agro.raiox.simulacao.service.SimulacaoService;
@@ -10,6 +12,7 @@ import br.com.codenest.agro.shared.paginacao.ParametrosPaginacao;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
@@ -49,6 +52,18 @@ public class SimulacaoResource {
     public SimulacaoResponse buscarPorId(
             @PathParam("id") UUID id, @QueryParam("produtorId") UUID produtorId) {
         return simulacaoService.buscarPorId(id, produtorId);
+    }
+
+    /** Só calcula, não grava: é o que a tela chama enquanto a pessoa preenche. */
+    @POST
+    @Path("/calcular")
+    @RolesAllowed({
+        Permissao.Codigos.RAIOXSIMULACAO_LISTAR,
+        Permissao.Codigos.RAIOXSIMULACAO_INSERIR,
+        Autorizacao.SUPER_ADMIN
+    })
+    public ResultadoCalculo calcular(@NotNull @Valid FormularioCalculo formulario) {
+        return simulacaoService.calcular(formulario);
     }
 
     @POST

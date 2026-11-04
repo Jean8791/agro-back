@@ -1,26 +1,19 @@
 package br.com.codenest.agro.raiox.simulacao.dto;
 
-import br.com.codenest.agro.raiox.produto.enums.ModuloProducao;
-import br.com.codenest.agro.raiox.simulacao.enums.Semaforo;
+import br.com.codenest.agro.raiox.simulacao.calculo.FormularioCalculo;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import java.math.BigDecimal;
-import java.util.Map;
 import java.util.UUID;
 
 /**
- * O que a calculadora manda ao salvar. {@code formulario} e
- * {@code resultado} vêm exatamente como {@code calculo.ts} os produziu — o
- * back não os reconstrói, só grava.
+ * O que a calculadora manda ao salvar: só o nome e o formulário. Módulo,
+ * produto, semáforo, preço mínimo e o resultado completo são calculados aqui
+ * no back a partir do formulário — o cliente não tem como gravar um
+ * resultado que a fórmula não produziria.
  */
 public record SimulacaoRequest(
         @NotBlank String nome,
-        @NotNull ModuloProducao modulo,
-        @NotBlank String produto,
-        @NotNull Semaforo semaforo,
-        BigDecimal precoMinimo,
-        @NotEmpty Map<String, Object> formulario,
-        @NotEmpty Map<String, Object> resultado,
+        @NotNull @Valid FormularioCalculo formulario,
         UUID produtorId) {
 }

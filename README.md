@@ -24,7 +24,8 @@ O front-end está em [agro-front](https://github.com/Jean8791/agro-front).
 - **Raio-X (calculadora de preço mínimo):**
   - catálogo de produtos base por módulo de produção, semeado automaticamente quando um produtor é criado;
   - checklist de itens de custo;
-  - simulações salvas com o resultado em semáforo (vermelho, amarelo, verde).
+  - motor de cálculo do preço mínimo no back (`CalculadoraPrecoMinimo`), com `BigDecimal` e testes unitários;
+  - simulações salvas com o resultado em semáforo (vermelho, amarelo, verde), sempre recalculado no servidor.
 - **Listagens** com paginação, ordenação e busca por termo.
 - **Tratamento de erros** padronizado (`ErrorResponse`) para regras de negócio, validação e recurso não encontrado.
 
@@ -59,7 +60,7 @@ O desenho multi-tenant e o que falta implementar estão em [`docs/multi-tenant.m
 | Papéis | `GET/POST /papeis` · `GET/PUT/DELETE /papeis/{id}` · `GET /papeis/permissoes` |
 | Raio-X: produtos | `GET/POST /raiox/produtos` · `GET/PUT/DELETE /raiox/produtos/{id}` · `POST /raiox/produtos/semear-padrao` |
 | Raio-X: checklist | `GET/POST /raiox/checklist` · `GET/PUT/DELETE /raiox/checklist/{id}` |
-| Raio-X: simulações | `GET/POST /raiox/simulacoes` · `GET/DELETE /raiox/simulacoes/{id}` |
+| Raio-X: simulações | `POST /raiox/simulacoes/calcular` · `GET/POST /raiox/simulacoes` · `GET/DELETE /raiox/simulacoes/{id}` |
 
 Há uma coleção do Postman pronta em [`postman/`](postman/).
 

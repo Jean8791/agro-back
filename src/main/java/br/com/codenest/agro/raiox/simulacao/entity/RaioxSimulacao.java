@@ -19,13 +19,12 @@ import org.hibernate.type.SqlTypes;
  * que saiu. É imutável — refazer o cálculo gera uma simulação nova, não edita
  * esta.
  *
- * <p>{@code formulario} e {@code resultado} guardam exatamente o JSON que o
- * front mandou: a fórmula continua rodando só lá, e o back não tenta
- * reconstruir os tipos de
- * {@code CalculatorForm}/{@code CalculationResult} — só valida que vieram
- * preenchidos. {@code modulo}, {@code produto}, {@code semaforo} e
- * {@code precoMinimo} são cópias soltas dos mesmos dados, gravadas à parte
- * pra listagem pintar a grid sem abrir os dois JSONs.
+ * <p>{@code formulario} guarda o que foi preenchido e {@code resultado} o que
+ * a {@code CalculadoraPrecoMinimo} devolveu no momento de salvar, ambos em
+ * jsonb: se a fórmula mudar depois, a simulação continua mostrando o que a
+ * pessoa viu quando decidiu. {@code modulo}, {@code produto},
+ * {@code semaforo} e {@code precoMinimo} são cópias soltas dos mesmos dados,
+ * gravadas à parte pra listagem pintar a grid sem abrir os dois JSONs.
  */
 @Entity
 @Table(name = "raiox_simulacao")

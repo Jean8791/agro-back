@@ -4,7 +4,6 @@ import jakarta.annotation.security.PermitAll;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
-import java.net.URI;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 
 /** A raiz da API leva direto para a documentação interativa. */
@@ -15,6 +14,6 @@ public class RaizResource {
     @PermitAll
     @Operation(hidden = true)
     public Response raiz() {
-        return Response.seeOther(URI.create("/swagger-ui")).build();
+        return Response.status(Response.Status.SEE_OTHER).header("Location", "/swagger-ui").build();
     }
 }

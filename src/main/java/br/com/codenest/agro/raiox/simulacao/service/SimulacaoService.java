@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Map;
 import java.util.UUID;
@@ -24,6 +25,8 @@ import java.util.UUID;
 /** Simulação é imutável — só existe criar, listar, buscar e excluir. */
 @ApplicationScoped
 public class SimulacaoService {
+
+    private static final BigDecimal PRECO_MAXIMO = new BigDecimal("1000000000000");
 
     private static final TypeReference<Map<String, Object>> JSON_OBJETO = new TypeReference<>() {};
 
@@ -68,6 +71,10 @@ public class SimulacaoService {
         if (formulario.nomeProduto().isEmpty()) {
             throw new NegocioException("Informe o produto ou atividade antes de salvar.");
         }
+        BigDecimal precoMinimo = resultado.precoMinimo().setScale(2, RoundingMode.HALF_UP);
+        if (precoMinimo.abs().compareTo(PRECO_MAXIMO) >= 0) {
+            throw new NegocioException("O preço mínimo calculado é grande demais para ser salvo. Confira os valores informados.");
+        }
 
         var entidade = new RaioxSimulacao();
         entidade.setProdutorId(produtorId);
@@ -75,7 +82,7 @@ public class SimulacaoService {
         entidade.setModulo(formulario.modulo());
         entidade.setProduto(formulario.nomeProduto());
         entidade.setSemaforo(resultado.semaforo());
-        entidade.setPrecoMinimo(resultado.precoMinimo().setScale(2, RoundingMode.HALF_UP));
+        entidade.setPrecoMinimo(precoMinimo);
         entidade.setFormulario(objectMapper.convertValue(formulario, JSON_OBJETO));
         entidade.setResultado(objectMapper.convertValue(resultado, JSON_OBJETO));
         simulacaoRepository.persistAndFlush(entidade);

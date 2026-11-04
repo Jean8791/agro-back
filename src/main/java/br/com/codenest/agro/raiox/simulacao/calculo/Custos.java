@@ -1,5 +1,6 @@
 package br.com.codenest.agro.raiox.simulacao.calculo;
 
+import jakarta.validation.constraints.Digits;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
@@ -9,17 +10,17 @@ import java.util.List;
  * {@code variavelPorUnidade} é multiplicado pela produção comercial.
  */
 public record Custos(
-        BigDecimal insumos,
-        BigDecimal aquisicao,
-        BigDecimal maoDeObra,
-        BigDecimal energia,
-        BigDecimal sanidade,
-        BigDecimal servicos,
-        BigDecimal estrutura,
-        BigDecimal embalagem,
-        BigDecimal frete,
-        BigDecimal outros,
-        BigDecimal variavelPorUnidade) {
+        @Digits(integer = 13, fraction = 6) BigDecimal insumos,
+        @Digits(integer = 13, fraction = 6) BigDecimal aquisicao,
+        @Digits(integer = 13, fraction = 6) BigDecimal maoDeObra,
+        @Digits(integer = 13, fraction = 6) BigDecimal energia,
+        @Digits(integer = 13, fraction = 6) BigDecimal sanidade,
+        @Digits(integer = 13, fraction = 6) BigDecimal servicos,
+        @Digits(integer = 13, fraction = 6) BigDecimal estrutura,
+        @Digits(integer = 13, fraction = 6) BigDecimal embalagem,
+        @Digits(integer = 13, fraction = 6) BigDecimal frete,
+        @Digits(integer = 13, fraction = 6) BigDecimal outros,
+        @Digits(integer = 13, fraction = 6) BigDecimal variavelPorUnidade) {
 
     public List<BigDecimal> fixos() {
         return Arrays.asList(

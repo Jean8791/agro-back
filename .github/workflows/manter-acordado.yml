@@ -2,8 +2,7 @@ name: Manter o back acordado
 
 on:
   schedule:
-    - cron: "*/10 11-23 * * *"
-    - cron: "*/10 0-1 * * *"
+    - cron: "*/10 12-14,17-19 * * 1-5"
   workflow_dispatch:
 
 permissions: {}

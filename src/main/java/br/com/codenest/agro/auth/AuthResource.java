@@ -22,11 +22,16 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.Optional;
+import java.util.regex.Pattern;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Path("/auth")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class AuthResource {
+
+    private static final Pattern FORMATO_IP = Pattern.compile("[0-9A-Fa-f:.]{2,45}");
 
     @Inject
     AuthService authService;
@@ -36,6 +41,9 @@ public class AuthResource {
 
     @Context
     HttpServerRequest httpRequest;
+
+    @ConfigProperty(name = "agro.auth.cabecalho-ip")
+    Optional<String> cabecalhoIp;
 
     @POST
     @Path("/login")
@@ -74,12 +82,25 @@ public class AuthResource {
     }
 
     /**
-     * IP de origem da requisição. Cabeçalhos de proxy (X-Forwarded-For) só são
-     * considerados quando {@code quarkus.http.proxy.proxy-address-forwarding}
-     * estiver habilitado — sem isso o valor viria do cliente e qualquer um
-     * poderia forjar o IP para escapar do limite por origem.
+     * IP de origem da requisição, usado no limite de tentativas de login.
+     *
+     * <p>Por padrão é o endereço da conexão. Atrás de um proxy esse endereço é
+     * o do próprio proxy, igual para todo mundo; aí {@code agro.auth.cabecalho-ip}
+     * aponta o cabeçalho em que o proxy entrega o IP real (no Render, que fica
+     * atrás da Cloudflare, {@code CF-Connecting-IP}). Só vale configurar um
+     * cabeçalho que o proxy sempre sobrescreve: {@code X-Forwarded-For} o
+     * cliente consegue forjar, e com ele forjaria o próprio IP para escapar do
+     * limite.
      */
     private String ipDeOrigem() {
+        var doCabecalho = cabecalhoIp
+                .filter(nome -> !nome.isBlank())
+                .map(httpRequest::getHeader)
+                .map(String::strip)
+                .filter(valor -> FORMATO_IP.matcher(valor).matches());
+        if (doCabecalho.isPresent()) {
+            return doCabecalho.get();
+        }
         var endereco = httpRequest.remoteAddress();
         return endereco == null ? null : endereco.hostAddress();
     }

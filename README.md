@@ -127,6 +127,7 @@ Os testes usam o banco `agro_back_test` criado pelo Docker Compose.
 | `DB_SSLMODE` | `disable` | Use `require` em produção |
 | `CORS_ORIGINS` | `http://localhost:4200,http://localhost:4300` | Origens liberadas, separadas por vírgula |
 | `AGRO_SUPER_ADMIN_SENHA` | (vazio) | Senha aplicada ao super admin na inicialização (mínimo 12 caracteres). Obrigatória em qualquer ambiente publicado: sem ela vale a senha conhecida da migration `V6` |
+| `AGRO_AUTH_CABECALHO_IP` | (vazio) | Cabeçalho com o IP real do cliente, usado no limite de tentativas de login quando a API fica atrás de um proxy. No Render: `CF-Connecting-IP`. Nunca use `X-Forwarded-For`, que o cliente consegue forjar |
 | `MP_JWT_VERIFY_PUBLICKEY_LOCATION` | `publicKey.pem` | Chave pública que valida os tokens, ex.: `file:/etc/secrets/publicKey.pem` |
 | `SMALLRYE_JWT_SIGN_KEY_LOCATION` | `privateKey.pem` | Chave privada que assina os tokens, ex.: `file:/etc/secrets/privateKey.pem` |
 

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "agro-back",
-    "description": "Coleção de testes do backend agro-back. As pastas espelham os domínios do backend (mesma convenção do CLAUDE.md: um domínio, uma pasta).\n\nORDEM: rode a coleção inteira pelo Runner, de cima para baixo. 'auth > Login (super admin)' guarda {{token_super}}; 'produtor > Criar produtor' guarda {{produtor_id}}; 'usuario > Login (admin do produtor)' guarda {{token}}, que é o Bearer padrão de todos os requests.\n\nO sistema é multi-tenant: cada produtor só enxerga os próprios dados. Os últimos requests de 'usuario' provam isso — buscar registro de outro produtor devolve 404, e forjar ?produtorId= não vaza nada.\n\nE-mails e documentos são gerados por timestamp, então a coleção pode rodar quantas vezes for preciso sem colidir com dado antigo.",
+    "description": "Coleção de testes do backend agro-back. As pastas espelham os domínios do backend (um domínio, uma pasta).\n\nORDEM: rode a coleção inteira pelo Runner, de cima para baixo. 'auth > Login (super admin)' guarda {{token_super}}; 'produtor > Criar produtor' guarda {{produtor_id}}; 'usuario > Login (admin do produtor)' guarda {{token}}, que é o Bearer padrão de todos os requests.\n\nO sistema é multi-tenant: cada produtor só enxerga os próprios dados. Os últimos requests de 'usuario' provam isso — buscar registro de outro produtor devolve 404, e forjar ?produtorId= não vaza nada.\n\nE-mails e documentos são gerados por timestamp, então a coleção pode rodar quantas vezes for preciso sem colidir com dado antigo.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [

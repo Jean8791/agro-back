@@ -20,8 +20,8 @@ import org.hibernate.type.SqlTypes;
  * esta.
  *
  * <p>{@code formulario} e {@code resultado} guardam exatamente o JSON que o
- * front mandou: a fórmula continua rodando só lá (ver CLAUDE.md, seção
- * Raio-X), e o back não tenta reconstruir os tipos de
+ * front mandou: a fórmula continua rodando só lá, e o back não tenta
+ * reconstruir os tipos de
  * {@code CalculatorForm}/{@code CalculationResult} — só valida que vieram
  * preenchidos. {@code modulo}, {@code produto}, {@code semaforo} e
  * {@code precoMinimo} são cópias soltas dos mesmos dados, gravadas à parte

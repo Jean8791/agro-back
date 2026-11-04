@@ -126,6 +126,9 @@ Os testes usam o banco `agro_back_test` criado pelo Docker Compose.
 | `DB_PASSWORD` | `agro` | Senha do banco |
 | `DB_SSLMODE` | `disable` | Use `require` em produção |
 | `CORS_ORIGINS` | `http://localhost:4200,http://localhost:4300` | Origens liberadas, separadas por vírgula |
+| `AGRO_SUPER_ADMIN_SENHA` | (vazio) | Senha aplicada ao super admin na inicialização (mínimo 12 caracteres). Obrigatória em qualquer ambiente publicado: sem ela vale a senha conhecida da migration `V6` |
+| `MP_JWT_VERIFY_PUBLICKEY_LOCATION` | `publicKey.pem` | Chave pública que valida os tokens, ex.: `file:/etc/secrets/publicKey.pem` |
+| `SMALLRYE_JWT_SIGN_KEY_LOCATION` | `privateKey.pem` | Chave privada que assina os tokens, ex.: `file:/etc/secrets/privateKey.pem` |
 
 ## Deploy
 
@@ -138,3 +141,5 @@ docker run -p 8090:8090 \
   -e DB_USERNAME=<usuario> -e DB_PASSWORD=<senha> -e DB_SSLMODE=require \
   agro-back
 ```
+
+No Render, as duas chaves do JWT entram como *Secret Files* (`publicKey.pem` e `privateKey.pem`, montados em `/etc/secrets/`), apontadas pelas variáveis `MP_JWT_VERIFY_PUBLICKEY_LOCATION` e `SMALLRYE_JWT_SIGN_KEY_LOCATION`. Use um par de chaves só para produção, diferente do local.

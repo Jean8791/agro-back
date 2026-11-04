@@ -8,6 +8,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -43,8 +44,8 @@ public class RaioxProdutoBase extends BaseEntity {
     @Column(name = "unidade_comercial", nullable = false, length = 40)
     private String unidadeComercial;
 
-    @Column(name = "quantidade_por_unidade", nullable = false)
-    private double quantidadePorUnidade;
+    @Column(name = "quantidade_por_unidade", nullable = false, precision = 14, scale = 4)
+    private BigDecimal quantidadePorUnidade;
 
     @Column(name = "unidade_preco", nullable = false, length = 30)
     private String unidadePreco;
@@ -108,11 +109,11 @@ public class RaioxProdutoBase extends BaseEntity {
         this.unidadeComercial = unidadeComercial;
     }
 
-    public double getQuantidadePorUnidade() {
+    public BigDecimal getQuantidadePorUnidade() {
         return quantidadePorUnidade;
     }
 
-    public void setQuantidadePorUnidade(double quantidadePorUnidade) {
+    public void setQuantidadePorUnidade(BigDecimal quantidadePorUnidade) {
         this.quantidadePorUnidade = quantidadePorUnidade;
     }
 

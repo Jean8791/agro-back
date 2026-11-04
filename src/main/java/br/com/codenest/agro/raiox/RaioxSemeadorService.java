@@ -9,6 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -49,7 +50,7 @@ public class RaioxSemeadorService {
             entidade.setProduto(preset.produto());
             entidade.setUnidadeTecnica(preset.unidadeTecnica());
             entidade.setUnidadeComercial(preset.unidadeComercial());
-            entidade.setQuantidadePorUnidade(preset.quantidadePorUnidade());
+            entidade.setQuantidadePorUnidade(BigDecimal.valueOf(preset.quantidadePorUnidade()));
             entidade.setUnidadePreco(preset.unidadePreco());
             entidade.setTipoProducaoAnimal(preset.tipoProducaoAnimal());
             entidade.setNota(preset.nota());

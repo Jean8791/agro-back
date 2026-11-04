@@ -5,6 +5,7 @@ import br.com.codenest.agro.raiox.produto.enums.TipoProducaoAnimal;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public record ProdutoBaseRequest(
@@ -13,7 +14,7 @@ public record ProdutoBaseRequest(
         @NotBlank String produto,
         @NotBlank String unidadeTecnica,
         @NotBlank String unidadeComercial,
-        @Positive double quantidadePorUnidade,
+        @NotNull @Positive BigDecimal quantidadePorUnidade,
         @NotBlank String unidadePreco,
         TipoProducaoAnimal tipoProducaoAnimal,
         String nota,

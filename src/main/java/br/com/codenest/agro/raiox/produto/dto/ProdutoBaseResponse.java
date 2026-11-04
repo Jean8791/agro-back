@@ -3,6 +3,7 @@ package br.com.codenest.agro.raiox.produto.dto;
 import br.com.codenest.agro.raiox.produto.entity.RaioxProdutoBase;
 import br.com.codenest.agro.raiox.produto.enums.ModuloProducao;
 import br.com.codenest.agro.raiox.produto.enums.TipoProducaoAnimal;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public record ProdutoBaseResponse(
@@ -12,7 +13,7 @@ public record ProdutoBaseResponse(
         String produto,
         String unidadeTecnica,
         String unidadeComercial,
-        double quantidadePorUnidade,
+        BigDecimal quantidadePorUnidade,
         String unidadePreco,
         TipoProducaoAnimal tipoProducaoAnimal,
         String nota,

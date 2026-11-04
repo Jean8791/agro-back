@@ -25,6 +25,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.UUID;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 /**
  * Papéis: o que cada pessoa pode fazer dentro do produtor.
@@ -32,6 +33,7 @@ import java.util.UUID;
  * <p>Como em `/usuarios`, o `produtorId` existe para o super admin dizer sobre
  * qual produtor está trabalhando, e é ignorado para os demais.
  */
+@Tag(name = "Papéis", description = "Papéis e a matriz de permissões.")
 @Path("/papeis")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)

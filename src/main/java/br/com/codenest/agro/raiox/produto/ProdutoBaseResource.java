@@ -23,8 +23,10 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.UUID;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 /** Catálogo de produtos/atividades do Raio-X, por produtor. */
+@Tag(name = "Raio-X · Produtos", description = "Catálogo de produtos e unidades usado pela calculadora.")
 @Path("/raiox/produtos")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)

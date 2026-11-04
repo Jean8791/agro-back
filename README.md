@@ -6,7 +6,7 @@ O front-end está em [agro-front](https://github.com/Jean8791/agro-front).
 
 > **Projeto acadêmico, desenvolvido para fins de estudo.** Os dados de demonstração são fictícios e os cálculos não substituem orientação técnica ou contábil.
 
-**Demonstração:** https://agro-front-vsp7.onrender.com (botão *Entrar como visitante*). O back roda no plano gratuito do Render e pode levar até um minuto para responder no primeiro acesso.
+**Demonstração:** https://agro-front-vsp7.onrender.com (botão *Entrar como visitante*). Documentação interativa da API (Swagger): https://agro-back-nndj.onrender.com/swagger-ui. O back roda no plano gratuito do Render e pode levar até um minuto para responder no primeiro acesso.
 
 ## Stack
 

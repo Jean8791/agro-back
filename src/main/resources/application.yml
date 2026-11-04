@@ -35,6 +35,22 @@ quarkus:
   flyway:
     migrate-at-start: true
     baseline-on-migrate: true
+  smallrye-openapi:
+    info-title: Agro API
+    info-version: 1.0.0
+    info-description: >-
+      API do projeto acadêmico Agro, para fins de estudo: gestão multi-tenant de
+      produtores e o Raio-X do preço mínimo. Para testar, faça POST /auth/login
+      com demo@agro.com / demo1234, copie o campo "token" e use o botão Authorize.
+    security-scheme: jwt
+    security-scheme-name: bearerAuth
+    security-scheme-description: Access token devolvido por POST /auth/login.
+  swagger-ui:
+    always-include: true
+    path: /swagger-ui
+    title: Agro API
+    persist-authorization: true
+    operations-sorter: alpha
 
 mp:
   jwt:

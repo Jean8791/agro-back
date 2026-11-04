@@ -23,8 +23,10 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.UUID;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 /** Checklist de custos do Raio-X, por produtor. */
+@Tag(name = "Raio-X · Checklist", description = "Checklist de custos que apoia o preenchimento.")
 @Path("/raiox/checklist")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)

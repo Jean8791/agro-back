@@ -2,8 +2,8 @@ package br.com.codenest.agro.produtor;
 
 import br.com.codenest.agro.produtor.dto.ProdutorRequest;
 import br.com.codenest.agro.produtor.dto.ProdutorResponse;
-import br.com.codenest.agro.shared.Autorizacao;
 import br.com.codenest.agro.produtor.service.ProdutorService;
+import br.com.codenest.agro.shared.Autorizacao;
 import br.com.codenest.agro.shared.paginacao.PaginaResposta;
 import br.com.codenest.agro.shared.paginacao.ParametrosPaginacao;
 import jakarta.annotation.security.RolesAllowed;
@@ -22,8 +22,10 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.UUID;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 /** Cadastro de clientes — exclusivo do super admin. */
+@Tag(name = "Produtores", description = "Clientes do sistema (somente super admin).")
 @Path("/produtores")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)

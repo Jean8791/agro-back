@@ -25,6 +25,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.UUID;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 /**
  * Usuários de um produtor.
@@ -38,6 +39,7 @@ import java.util.UUID;
  * não tem papel — ele administra o produto, não um produtor. Esconder o botão
  * no front é conforto; quem barra de verdade é a anotação daqui.
  */
+@Tag(name = "Usuários", description = "Pessoas com acesso a um produtor e o papel de cada uma.")
 @Path("/usuarios")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)

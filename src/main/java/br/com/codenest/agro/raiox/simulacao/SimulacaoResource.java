@@ -25,8 +25,10 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.UUID;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 /** Simulações salvas da calculadora — sem PUT, é imutável (ver SimulacaoService). */
+@Tag(name = "Raio-X · Simulações", description = "Cálculo do preço mínimo e histórico de simulações.")
 @Path("/raiox/simulacoes")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)

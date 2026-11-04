@@ -14,6 +14,6 @@ public class RaizResource {
     @PermitAll
     @Operation(hidden = true)
     public Response raiz() {
-        return Response.status(Response.Status.SEE_OTHER).header("Location", "/swagger-ui").build();
+        return Response.status(Response.Status.SEE_OTHER).header("Location", "/swagger-ui/").build();
     }
 }

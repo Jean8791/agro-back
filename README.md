@@ -99,6 +99,14 @@ rm rsaPrivateKey.pem
 
 A API sobe em `http://localhost:8090`. As migrations do Flyway rodam na inicialização e criam um super admin de bootstrap (veja `V6__seed_super_admin.sql`). Troque essa senha antes de usar em qualquer ambiente que não seja o local.
 
+### 4. Criar a conta de demonstração
+
+```bash
+./scripts/criar-demo.sh
+```
+
+Com a API no ar, o script cria pela própria API o produtor "Sítio Demonstração", um papel "Demonstração" (consulta tudo e usa a calculadora, sem excluir nem administrar) e o usuário `demo@agro.com` / `demo1234`, com três simulações de exemplo (uma de cada semáforo). Pode rodar de novo: o que já existe é mantido. Para outro ambiente, informe `API`, `ADMIN_EMAIL` e `ADMIN_SENHA`.
+
 ### Testes
 
 ```bash

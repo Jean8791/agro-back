@@ -16,6 +16,11 @@ public class SessaoRepository implements PanacheRepositoryBase<Sessao, UUID> {
                 .firstResultOptional();
     }
 
+    public void revogarDoUsuarioNoProdutor(UUID usuarioId, UUID produtorId) {
+        update("revogadaEm = ?1 where usuarioId = ?2 and produtorId = ?3 and revogadaEm is null",
+                LocalDateTime.now(), usuarioId, produtorId);
+    }
+
     public void revogarTodasDoUsuario(UUID usuarioId) {
         update("revogadaEm = ?1 where usuarioId = ?2 and revogadaEm is null",
                 LocalDateTime.now(), usuarioId);

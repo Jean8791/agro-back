@@ -9,6 +9,7 @@ import br.com.codenest.agro.shared.exception.NegocioException;
 import br.com.codenest.agro.shared.exception.RecursoNaoEncontradoException;
 import br.com.codenest.agro.shared.paginacao.PaginaResposta;
 import br.com.codenest.agro.shared.paginacao.ParametrosPaginacao;
+import br.com.codenest.agro.shared.tenant.TenantContext;
 import br.com.codenest.agro.usuario.UsuarioBloqueadoEvent;
 import br.com.codenest.agro.usuario.dto.UsuarioRequest;
 import br.com.codenest.agro.usuario.dto.UsuarioResponse;
@@ -45,6 +46,9 @@ public class UsuarioService {
     EscopoProdutor escopoProdutor;
 
     @Inject
+    TenantContext tenantContext;
+
+    @Inject
     Event<UsuarioBloqueadoEvent> usuarioBloqueadoEvent;
 
     @Transactional
@@ -71,7 +75,7 @@ public class UsuarioService {
         vinculo.setPapelId(papel.getId());
         produtorUsuarioRepository.persist(vinculo);
 
-        return UsuarioResponse.from(usuario, papel);
+        return UsuarioResponse.from(usuario, vinculo, papel);
     }
 
     public PaginaResposta<UsuarioResponse> listar(
@@ -81,61 +85,93 @@ public class UsuarioService {
                         produtorDaOperacao(produtorInformado), paginacao, termo);
         var conteudo =
                 pagina.conteudo().stream()
-                        .map(linha -> UsuarioResponse.from((Usuario) linha[0], (Papel) linha[1]))
+                        .map(linha -> UsuarioResponse.from(
+                                (Usuario) linha[0], (ProdutorUsuario) linha[1], (Papel) linha[2]))
                         .toList();
         return PaginaResposta.de(conteudo, pagina.total());
     }
 
     public UsuarioResponse buscarPorId(UUID id, UUID produtorInformado) {
         var vinculo = vinculoObrigatorio(id, produtorInformado);
-        return UsuarioResponse.from(
-                buscarEntidadePorId(id), papelRepository.findById(vinculo.getPapelId()));
+        return resposta(buscarEntidadePorId(id), vinculo);
     }
 
+    /**
+     * Papel é do vínculo, então muda sempre. Nome e e-mail são da conta, que
+     * pode ter acesso a outros produtores: aí só o super admin altera, para um
+     * produtor não mexer no login que outro também usa.
+     */
     @Transactional
     public UsuarioResponse editar(UUID id, UsuarioUpdateRequest request, UUID produtorInformado) {
         var usuario = buscarEntidadePorId(id);
         var vinculo = vinculoObrigatorio(id, produtorInformado);
-
-        usuarioRepository
-                .findByEmailAndIdNot(request.email(), id)
-                .ifPresent(
-                        outro -> {
-                            throw new NegocioException("E-mail já cadastrado");
-                        });
-
         var papel = papelObrigatorio(request.papelId(), vinculo.getProdutorId());
 
-        usuario.setNome(request.nome());
-        usuario.setEmail(request.email());
-        vinculo.setPapelId(papel.getId());
+        boolean mudaConta = !usuario.getNome().equals(request.nome())
+                || !usuario.getEmail().equalsIgnoreCase(request.email());
+        if (mudaConta) {
+            if (!tenantContext.isSuperAdmin()
+                    && produtorUsuarioRepository.temVinculoForaDe(vinculo.getProdutorId(), id)) {
+                throw new NegocioException(
+                        "Este usuário também acessa outro produtor. Nome e e-mail só podem ser alterados pelo suporte.");
+            }
+            usuarioRepository
+                    .findByEmailAndIdNot(request.email(), id)
+                    .ifPresent(
+                            outro -> {
+                                throw new NegocioException("E-mail já cadastrado");
+                            });
+            usuario.setNome(request.nome());
+            usuario.setEmail(request.email());
+        }
 
-        return UsuarioResponse.from(usuario, papel);
+        vinculo.setPapelId(papel.getId());
+        return UsuarioResponse.from(usuario, vinculo, papel);
     }
 
+    /** Bloqueia o acesso a este produtor; os outros produtores da pessoa não são afetados. */
     @Transactional
     public UsuarioResponse bloquear(UUID id, UUID produtorInformado) {
         var usuario = buscarEntidadePorId(id);
         var vinculo = vinculoObrigatorio(id, produtorInformado);
-        usuario.setAtivo(false);
-        usuarioBloqueadoEvent.fire(new UsuarioBloqueadoEvent(id));
-        return UsuarioResponse.from(usuario, papelRepository.findById(vinculo.getPapelId()));
+        vinculo.setAtivo(false);
+        usuarioBloqueadoEvent.fire(new UsuarioBloqueadoEvent(id, vinculo.getProdutorId()));
+        return resposta(usuario, vinculo);
     }
 
+    /**
+     * Libera o acesso a este produtor. Se a conta inteira estiver inativa e a
+     * pessoa só tiver este produtor, a conta é reativada junto.
+     */
     @Transactional
     public UsuarioResponse desbloquear(UUID id, UUID produtorInformado) {
         var usuario = buscarEntidadePorId(id);
         var vinculo = vinculoObrigatorio(id, produtorInformado);
-        usuario.setAtivo(true);
-        return UsuarioResponse.from(usuario, papelRepository.findById(vinculo.getPapelId()));
+        vinculo.setAtivo(true);
+        if (!usuario.isAtivo() && !produtorUsuarioRepository.temVinculoForaDe(vinculo.getProdutorId(), id)) {
+            usuario.setAtivo(true);
+        }
+        return resposta(usuario, vinculo);
     }
 
+    /**
+     * Tira a pessoa deste produtor. A conta só é inativada quando não sobra
+     * acesso a nenhum outro.
+     */
     @Transactional
     public void excluir(UUID id, UUID produtorInformado) {
         var usuario = buscarEntidadePorId(id);
-        vinculoObrigatorio(id, produtorInformado);
-        usuario.setAtivo(false);
-        usuarioBloqueadoEvent.fire(new UsuarioBloqueadoEvent(id));
+        var vinculo = vinculoObrigatorio(id, produtorInformado);
+        UUID produtorId = vinculo.getProdutorId();
+        produtorUsuarioRepository.delete(vinculo);
+        if (!produtorUsuarioRepository.temVinculoForaDe(produtorId, id)) {
+            usuario.setAtivo(false);
+        }
+        usuarioBloqueadoEvent.fire(new UsuarioBloqueadoEvent(id, produtorId));
+    }
+
+    private UsuarioResponse resposta(Usuario usuario, ProdutorUsuario vinculo) {
+        return UsuarioResponse.from(usuario, vinculo, papelRepository.findById(vinculo.getPapelId()));
     }
 
     private Usuario buscarEntidadePorId(UUID id) {
@@ -163,7 +199,7 @@ public class UsuarioService {
      */
     private ProdutorUsuario vinculoObrigatorio(UUID usuarioId, UUID produtorInformado) {
         return produtorUsuarioRepository
-                .buscarAtivo(produtorDaOperacao(produtorInformado), usuarioId)
+                .buscar(produtorDaOperacao(produtorInformado), usuarioId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado"));
     }
 

@@ -15,6 +15,6 @@ public class SessaoRevogacaoListener {
 
     @Transactional
     public void aoBloquear(@Observes UsuarioBloqueadoEvent evento) {
-        sessaoRepository.revogarTodasDoUsuario(evento.usuarioId());
+        sessaoRepository.revogarDoUsuarioNoProdutor(evento.usuarioId(), evento.produtorId());
     }
 }

@@ -20,6 +20,16 @@ public class ProdutorUsuarioRepository implements PanacheRepositoryBase<Produtor
                 .firstResultOptional();
     }
 
+    /** O vínculo da pessoa com o produtor, ativo ou bloqueado. */
+    public Optional<ProdutorUsuario> buscar(UUID produtorId, UUID usuarioId) {
+        return find("produtorId = ?1 and usuarioId = ?2", produtorId, usuarioId).firstResultOptional();
+    }
+
+    /** Se a pessoa tem acesso, ativo ou bloqueado, a algum produtor além deste. */
+    public boolean temVinculoForaDe(UUID produtorId, UUID usuarioId) {
+        return count("usuarioId = ?1 and produtorId <> ?2", usuarioId, produtorId) > 0;
+    }
+
     /** Quantas pessoas exercem este papel — excluir papel em uso deixaria vínculo órfão. */
     public long contarPorPapel(UUID papelId) {
         return count("papelId", papelId);

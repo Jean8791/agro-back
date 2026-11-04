@@ -63,7 +63,7 @@ public class UsuarioRepository implements PanacheRepositoryBase<Usuario, UUID> {
 
         var selecao =
                 getEntityManager()
-                        .createQuery("select u, p " + base + " order by " + ordemJpql(sort), Object[].class);
+                        .createQuery("select u, pu, p " + base + " order by " + ordemJpql(sort), Object[].class);
         selecao.setParameter("produtorId", produtorId);
         if (temTermo) {
             selecao.setParameter("termo", "%" + termo.toLowerCase() + "%");

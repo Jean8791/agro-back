@@ -190,7 +190,7 @@ class UsuarioResourceTest {
     }
 
     @Test
-    void excluirDeveInativarOUsuario() {
+    void excluirDeveTirarOUsuarioDoProdutor() {
         String id = criarUsuario(emailUnico());
 
         given()
@@ -201,8 +201,7 @@ class UsuarioResourceTest {
         given()
                 .header("Authorization", "Bearer " + admin.token())
                 .when().get("/usuarios/{id}", id)
-                .then().statusCode(200)
-                .body("ativo", is(false));
+                .then().statusCode(404);
     }
 
     // ---------------------------------------------------------- isolamento

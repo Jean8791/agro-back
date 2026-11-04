@@ -31,27 +31,49 @@ class SimulacaoResourceTest {
         return "Simulação Teste " + System.nanoTime();
     }
 
+    private static String corpoValido(String nome, String produto, Object produtorId) {
+        return """
+                {
+                  "nome": "%s",
+                  "produtorId": "%s",
+                  "formulario": {
+                    "modulo": "VEGETAL",
+                    "produtoSelecionado": "%s",
+                    "regiao": "PR",
+                    "canalVenda": "Feira",
+                    "unidadeTecnica": "cabeça",
+                    "unidadeComercial": "caixa",
+                    "quantidadePorUnidade": 20,
+                    "precoEsperado": 70,
+                    "margemDesejadaPercent": 20,
+                    "reservaPercent": 10,
+                    "fonteCotacao": "Feira",
+                    "dataCotacao": "2026-07-11",
+                    "area": 1000,
+                    "producaoBrutaInformada": 1000,
+                    "perdaVegetalPercent": 12,
+                    "custos": {
+                      "insumos": 950, "aquisicao": 0, "maoDeObra": 600, "energia": 120, "sanidade": 0,
+                      "servicos": 0, "estrutura": 200, "embalagem": 176, "frete": 220, "outros": 50,
+                      "variavelPorUnidade": 0
+                    },
+                    "custosMarcados": []
+                  }
+                }
+                """.formatted(nome, produtorId, produto);
+    }
+
     private String criarSimulacao(String nome, String produto) {
         return given()
                 .header("Authorization", "Bearer " + admin.token())
                 .contentType(ContentType.JSON)
-                .body("""
-                        {
-                          "nome": "%s",
-                          "modulo": "VEGETAL",
-                          "produto": "%s",
-                          "semaforo": "GREEN",
-                          "precoMinimo": 12.50,
-                          "formulario": { "produtoSelecionado": "%s" },
-                          "resultado": { "mensagem": "Preço acima do mínimo." },
-                          "produtorId": "%s"
-                        }
-                        """.formatted(nome, produto, produto, admin.produtorId()))
+                .body(corpoValido(nome, produto, admin.produtorId()))
                 .when().post("/raiox/simulacoes")
                 .then().statusCode(201)
                 .body("nome", equalTo(nome))
                 .body("produto", equalTo(produto))
                 .body("semaforo", equalTo("GREEN"))
+                .body("precoMinimo", equalTo(57.9f))
                 .extract().path("id");
     }
 
@@ -110,7 +132,8 @@ class SimulacaoResourceTest {
                 .then().statusCode(200)
                 .body("nome", equalTo(nome))
                 .body("formulario.produtoSelecionado", equalTo("Alface"))
-                .body("resultado.mensagem", equalTo("Preço acima do mínimo."));
+                .body("resultado.semaforo", equalTo("GREEN"))
+                .body("resultado.precoMinimo", equalTo(57.9f));
     }
 
     @Test
@@ -251,17 +274,7 @@ class SimulacaoResourceTest {
         given()
                 .header("Authorization", "Bearer " + outroAdmin.token())
                 .contentType(ContentType.JSON)
-                .body("""
-                        {
-                          "nome": "%s",
-                          "modulo": "VEGETAL",
-                          "produto": "Alface",
-                          "semaforo": "GREEN",
-                          "formulario": { "a": 1 },
-                          "resultado": { "b": 2 },
-                          "produtorId": "%s"
-                        }
-                        """.formatted(nomeDoOutro, outroAdmin.produtorId()))
+                .body(corpoValido(nomeDoOutro, "Alface", outroAdmin.produtorId()))
                 .when().post("/raiox/simulacoes")
                 .then().statusCode(201);
 
